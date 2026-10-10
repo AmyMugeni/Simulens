@@ -3,27 +3,22 @@ package com.cognilens.app.data.local.dao
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
-import androidx.room.Transaction
+import androidx.room.OnConflictStrategy
 import com.cognilens.app.data.local.entity.TimetableEntry
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-abstract class TimetableDao {
-    @Query("SELECT * FROM timetable_entries ORDER BY dayOfWeek, startMinutes")
-    abstract fun observeAll(): Flow<List<TimetableEntry>>
+interface TimetableDao {
 
-    @Query("SELECT COUNT(*) FROM timetable_entries")
-    abstract fun observeCount(): Flow<Int>
+    // Insert new entries, overwriting the old schedule table if a match exists
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTimetable(timetable: List<TimetableEntry>)
 
+    // Read the complete timetable live as a stream to feed into Jetpack Compose
+    @Query("SELECT * FROM timetable_entries")
+    fun getTimetableFlow(): Flow<List<TimetableEntry>>
+
+    // Clear the timetable if the user decides to upload a new version
     @Query("DELETE FROM timetable_entries")
-    abstract suspend fun clear()
-
-    @Insert
-    abstract suspend fun insertAll(items: List<TimetableEntry>)
-
-    @Transaction
-    open suspend fun replaceAll(items: List<TimetableEntry>) {
-        clear()
-        insertAll(items)
-    }
+    suspend fun clearTimetable()
 }

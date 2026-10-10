@@ -1,9 +1,30 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
 }
+
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(localPropertiesFile.inputStream())
+}
+
+// prioritize GROQ_API_KEY, then fallback to GROK_API_KEY, then OPENAI_API_KEY
+val rawApiKey = localProperties.getProperty("GROQ_API_KEY")
+    ?: localProperties.getProperty("GROK_API_KEY")
+    ?: localProperties.getProperty("OPENAI_API_KEY") 
+    ?: ""
+
+// Sanitize: Remove quotes, whitespace, and potential 'Bearer ' prefixes
+val sanitizedApiKey = rawApiKey.trim()
+    .removeSurrounding("\"")
+    .removeSurrounding("'")
+    .removePrefix("Bearer ")
+    .trim()
 
 android {
     namespace = "com.cognilens.app"
@@ -18,7 +39,8 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        buildConfigField("String", "AI_API_KEY", "\"YOUR_API_KEY_HERE\"")
+        // This passes the key to TimetableExtractor via BuildConfig.AI_API_KEY
+        buildConfigField("String", "AI_API_KEY", "\"$sanitizedApiKey\"")
     }
 
     buildTypes {
@@ -41,6 +63,12 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "META-INF/DEPENDENCIES"
+        }
     }
 }
 
@@ -67,6 +95,10 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
+    //render dependencies
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

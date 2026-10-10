@@ -12,10 +12,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.cognilens.app.ui.onboarding.OnboardingViewModel
 import com.cognilens.app.ui.onboarding.PermissionsScreen
-import com.cognilens.app.ui.onboarding.ProfileGatewayScreen
-import com.cognilens.app.ui.onboarding.ProfileSetupHubScreen
+import com.cognilens.app.ui.profile.ProfileGatewayScreen
+import com.cognilens.app.ui.profile.ProfileSetupHubScreen
 import com.cognilens.app.ui.onboarding.SplashScreen
 import com.cognilens.app.ui.theme.CognilensTheme
+import com.cognilens.app.ui.profile.ProfileScreen
 
 class MainActivity : ComponentActivity() {
 
@@ -61,8 +62,19 @@ class MainActivity : ComponentActivity() {
                             ProfileSetupHubScreen(
                                 viewModel = onboardingViewModel,
                                 onComplete = {
-                                    // Complete onboarding flow and exit activity or launch main dashboard
                                     finish()
+                                },
+                                onNavigateToProfile = {
+                                    navController.navigate(OnboardingRoutes.PROFILE)
+                                }
+                            )
+                        }
+
+                        composable(OnboardingRoutes.PROFILE) {
+                            ProfileScreen(
+                                viewModel = onboardingViewModel,
+                                onNavigateBack = {
+                                    navController.popBackStack()
                                 }
                             )
                         }
@@ -78,4 +90,5 @@ private object OnboardingRoutes {
     const val PERMISSIONS = "permissions"
     const val GATEWAY = "gateway"
     const val SETUP_HUB = "setup_hub"
+    const val PROFILE = "profile"
 }

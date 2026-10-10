@@ -9,7 +9,7 @@ import com.cognilens.app.data.local.dao.TimetableDao
 import com.cognilens.app.data.local.entity.InterventionLogEntity
 import com.cognilens.app.data.local.entity.TimetableEntry
 
-@Database(entities = [InterventionLogEntity::class, TimetableEntry::class], version = 2, exportSchema = false)
+@Database(entities = [InterventionLogEntity::class, TimetableEntry::class], version = 3, exportSchema = false)
 abstract class CogniLensDatabase : RoomDatabase() {
 
     abstract fun interventionLogDao(): InterventionLogDao
