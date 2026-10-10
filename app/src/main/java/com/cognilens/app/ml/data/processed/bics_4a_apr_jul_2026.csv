@@ -1,0 +1,18 @@
+day,start_time,end_time,course_code,activity,instructor,location,duration_hours
+Monday,08:15,10:15,ICS 4106,Computer Simulation and Modelling,C Ouma,STM-B F2-05,2.0
+Monday,10:15,12:15,ICS 4102,Machine Learning,J Wekesa,,2.0
+Monday,13:15,14:15,ICS 4103,Cloud Computing,V Ochango,,1.0
+Monday,15:15,17:15,ICS 3105,Multimedia Applications,Z Muti,,2.0
+Tuesday,08:15,10:15,ICS 4101,ICS Project II,K Omondi,,2.0
+Tuesday,10:15,11:15,,Maisha Program 7 - Gents 4A,P Neri,RM B,1.0
+Tuesday,11:15,12:15,,Maisha Program 7 - Ladies ICS 4A,R Bunde,RM 10,1.0
+Tuesday,13:15,15:15,ICS 4104,Distributed Systems,H Talo,STM-B F2-05,2.0
+Wednesday,08:15,10:15,ICS 4111,Embedded Systems and Internet of Things,A Vikiru,,2.0
+Wednesday,11:15,12:15,ICS 4106,Computer Simulation and Modelling,C Ouma,,1.0
+Wednesday,13:15,15:15,ICS 4104,Distributed Systems,H Talo,,2.0
+Wednesday,15:15,17:15,ICS 4103,Cloud Computing,V Ochango,MSB 13,2.0
+Thursday,08:15,10:15,ICS 4101,ICS Project II,K Omondi,LT 6,2.0
+Thursday,11:15,13:15,ICS 4111,Embedded Systems and Internet of Things,A Vikiru,Masinga Lab,2.0
+Thursday,15:15,17:15,ICS 3105,Multimedia Applications,Z Muti,LT 6,2.0
+Friday,08:15,10:15,ICS 4102,Machine Learning,J Wekesa,LT 2,2.0
+Friday,14:15,17:15,,Sports/Clubs,,,3.0

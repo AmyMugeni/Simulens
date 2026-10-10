@@ -5,12 +5,15 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.cognilens.app.data.local.dao.InterventionLogDao
+import com.cognilens.app.data.local.dao.TimetableDao
 import com.cognilens.app.data.local.entity.InterventionLogEntity
+import com.cognilens.app.data.local.entity.TimetableEntry
 
-@Database(entities = [InterventionLogEntity::class], version = 1, exportSchema = false)
+@Database(entities = [InterventionLogEntity::class, TimetableEntry::class], version = 3, exportSchema = false)
 abstract class CogniLensDatabase : RoomDatabase() {
 
     abstract fun interventionLogDao(): InterventionLogDao
+    abstract fun timetableDao(): TimetableDao
 
     companion object {
         @Volatile
@@ -22,7 +25,9 @@ abstract class CogniLensDatabase : RoomDatabase() {
                     context.applicationContext,
                     CogniLensDatabase::class.java,
                     "cognilens_database"
-                ).build()
+                )
+                    .fallbackToDestructiveMigration()
+                    .build()
                 INSTANCE = instance
                 instance
             }

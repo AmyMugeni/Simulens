@@ -13,7 +13,7 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.cognilens.app.data.local.CogniLensDatabase
 import com.cognilens.app.data.local.entity.InterventionLogEntity
-import com.cognilens.app.data.preferences.UserProfileRepository
+import com.cognilens.app.data.repositories.UserProfileRepository
 import com.cognilens.app.domain.model.UserProfile
 import com.cognilens.app.domain.rules.RuleEngine
 import com.cognilens.app.domain.rules.RuleEvaluationResult

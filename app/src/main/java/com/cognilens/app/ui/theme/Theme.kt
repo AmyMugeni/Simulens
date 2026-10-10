@@ -1,6 +1,5 @@
 package com.cognilens.app.ui.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -9,35 +8,58 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+private val LightColors = lightColorScheme(
+    primary = SteelBlue,
+    onPrimary = Color.White,
+    primaryContainer = SkyBlue,
+    onPrimaryContainer = Navy,
+    secondary = Coral,
+    onSecondary = Navy,
+    secondaryContainer = CoralContainer,
+    background = LightBackground,
+    onBackground = Navy,
+    surface = LightBackground,
+    onSurface = Navy,
+    surfaceVariant = Ice,
+    onSurfaceVariant = LightOnSurfaceVariant,
+    surfaceContainerLowest = Color.White,
+    surfaceContainerLow = Color.White,
+    surfaceContainer = Ice,
+    outline = LightOutline,
+    outlineVariant = LightOutlineVariant,
+    error = ErrorLight,
+    errorContainer = ErrorContainerLight
 )
 
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+private val DarkColors = darkColorScheme(
+    primary = SkyBlue,
+    onPrimary = Navy,
+    primaryContainer = SteelBlue,
+    onPrimaryContainer = Ice,
+    secondary = Coral,
+    onSecondary = Navy,
+    background = DarkBackground,
+    onBackground = Ice,
+    surface = DarkBackground,
+    onSurface = Ice,
+    surfaceVariant = Navy,
+    onSurfaceVariant = DarkOnSurfaceVariant,
+    surfaceContainerLow = DarkSurfaceLow,
+    surfaceContainer = Navy,
+    outline = DarkOutline,
+    outlineVariant = DarkOutline,
+    error = ErrorDark,
+    errorContainer = ErrorContainerDark
 )
 
 @Composable
 fun CognilensTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    // Set to false by default to ensure brand colors are reflected
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -46,8 +68,8 @@ fun CognilensTheme(
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
 
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+        darkTheme -> DarkColors
+        else -> LightColors
     }
 
     MaterialTheme(
