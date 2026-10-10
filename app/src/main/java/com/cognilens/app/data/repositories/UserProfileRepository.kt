@@ -1,4 +1,4 @@
-package com.cognilens.app.data.preferences
+package com.cognilens.app.data.repositories
 
 import android.content.Context
 import androidx.datastore.core.DataStore
