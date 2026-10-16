@@ -5,12 +5,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Person
@@ -19,17 +20,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.cognilens.app.data.repositories.ImportState
+import com.cognilens.app.ui.components.GradientButton
+import com.cognilens.app.ui.components.PillBadge
+import com.cognilens.app.ui.components.TimePickerCard
 import com.cognilens.app.ui.onboarding.OnboardingViewModel
-import com.cognilens.app.domain.model.UserProfile
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,7 +39,8 @@ fun ProfileSetupHubScreen(
     viewModel: OnboardingViewModel,
     onComplete: () -> Unit,
     onNavigateToProfile: () -> Unit = {},
-    onNavigateToManualTimetable: () -> Unit = {}
+    onNavigateToManualTimetable: () -> Unit = {},
+    onNavigateToAppSelection: () -> Unit = {}
 ) {
     val userProfile by viewModel.userProfile.collectAsState()
     val bsmasAnswers by viewModel.bsmasAnswers.collectAsState()
@@ -79,25 +82,39 @@ fun ProfileSetupHubScreen(
             .padding(horizontal = 24.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-            horizontalArrangement = Arrangement.End,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onNavigateToProfile) {
+            Text(
+                text = "Profile Setup",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = colors.onBackground
+            )
+
+            IconButton(
+                onClick = onNavigateToProfile,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(colors.primaryContainer)
+            ) {
                 Icon(
                     imageVector = Icons.Default.Person,
                     contentDescription = "View Profile",
-                    tint = colors.primary
+                    tint = colors.onPrimaryContainer
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         // Progress Card
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.large,
+            shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(
                 containerColor = if (isComplete) colors.primaryContainer else colors.surfaceContainerLow
             ),
@@ -105,7 +122,7 @@ fun ProfileSetupHubScreen(
                 1.dp,
                 if (isComplete) colors.primary else colors.outlineVariant
             ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Row(
                 modifier = Modifier.padding(20.dp),
@@ -113,13 +130,14 @@ fun ProfileSetupHubScreen(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Profile Completion",
+                        text = "Completion Status",
                         style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
                         color = if (isComplete) colors.onPrimaryContainer else colors.onSurface
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = if (isComplete) "All requirements met!" else "Complete all 4 tasks to unlock CogniLens",
+                        text = if (isComplete) "All 4 tasks complete! Ready to start." else "Complete all tasks below to unlock CogniLens",
                         style = MaterialTheme.typography.bodyMedium,
                         color = if (isComplete) colors.onPrimaryContainer else colors.onSurfaceVariant
                     )
@@ -130,7 +148,7 @@ fun ProfileSetupHubScreen(
                         progress = { progress },
                         modifier = Modifier.size(64.dp),
                         color = colors.primary,
-                        trackColor = if (isComplete) colors.surface else colors.surfaceVariant,
+                        trackColor = if (isComplete) colors.surface else colors.surfaceContainer,
                         strokeWidth = 7.dp,
                         strokeCap = StrokeCap.Round
                     )
@@ -145,6 +163,7 @@ fun ProfileSetupHubScreen(
                         Text(
                             text = "${(progress * 100).toInt()}%",
                             style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
                             color = colors.onSurface
                         )
                     }
@@ -162,13 +181,13 @@ fun ProfileSetupHubScreen(
             onValueChange = viewModel::updateUsername,
             label = { Text("Username / Student ID") },
             singleLine = true,
-            shape = MaterialTheme.shapes.medium,
+            shape = RoundedCornerShape(16.dp),
             modifier = Modifier.fillMaxWidth(),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = colors.surfaceContainerLow,
                 unfocusedContainerColor = colors.surfaceContainerLow,
                 focusedBorderColor = colors.primary,
-                unfocusedBorderColor = colors.onSurfaceVariant.copy(alpha = 0.5f),
+                unfocusedBorderColor = colors.outlineVariant,
                 focusedLabelColor = colors.primary,
                 unfocusedLabelColor = colors.onSurfaceVariant
             )
@@ -199,29 +218,39 @@ fun ProfileSetupHubScreen(
 
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.medium,
+            shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
             border = BorderStroke(1.dp, colors.outlineVariant)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(modifier = Modifier.padding(18.dp)) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Import Timetable Document", style = MaterialTheme.typography.titleMedium)
-                        Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = if (classCount > 0) "Status: Loaded ($classCount days in database)" else "Status: Missing PDF",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (classCount > 0) colors.primary else colors.error
+                            text = "Import Timetable PDF",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        PillBadge(
+                            text = if (classCount > 0) "Loaded ($classCount days)" else "PDF Missing",
+                            containerColor = if (classCount > 0) colors.primaryContainer else colors.errorContainer,
+                            contentColor = if (classCount > 0) colors.onPrimaryContainer else colors.onErrorContainer
                         )
                     }
 
                     Button(
                         onClick = { filePicker.launch(arrayOf("application/pdf")) },
-                        enabled = importState !is ImportState.Loading
+                        enabled = importState !is ImportState.Loading,
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = colors.primary,
+                            contentColor = colors.onPrimary
+                        )
                     ) {
                         if (importState is ImportState.Loading) {
                             CircularProgressIndicator(
@@ -230,19 +259,19 @@ fun ProfileSetupHubScreen(
                                 color = colors.onPrimary
                             )
                         } else {
-                            Icon(imageVector = Icons.Default.DateRange, contentDescription = null)
+                            Icon(imageVector = Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Select PDF")
+                            Text("Select PDF", fontWeight = FontWeight.Bold)
                         }
                     }
                 }
                 AnimatedVisibility(visible = importState is ImportState.Error) {
-                    val errMsg = (importState as? ImportState.Error)?.message ?: "Extraction connection lost"
+                    val errMsg = (importState as? ImportState.Error)?.message ?: "Extraction issue"
                     Row(
                         modifier = Modifier
                             .padding(top = 12.dp)
                             .fillMaxWidth()
-                            .background(colors.errorContainer, MaterialTheme.shapes.small)
+                            .background(colors.errorContainer, RoundedCornerShape(12.dp))
                             .padding(10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -256,7 +285,7 @@ fun ProfileSetupHubScreen(
                         modifier = Modifier
                             .padding(top = 12.dp)
                             .fillMaxWidth()
-                            .background(colors.primaryContainer, MaterialTheme.shapes.small)
+                            .background(colors.primaryContainer, RoundedCornerShape(12.dp))
                             .padding(10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -270,11 +299,54 @@ fun ProfileSetupHubScreen(
 
         Spacer(modifier = Modifier.height(28.dp))
 
-        // 4. BSMAS Section
-        SectionHeader(number = 4, title = "Baseline Assessment (BSMAS)")
+        // 4. Monitored Applications
+        SectionHeader(number = 4, title = "Monitored Applications")
+        Spacer(modifier = Modifier.height(12.dp))
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
+            border = BorderStroke(1.dp, colors.outlineVariant)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(18.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Tracked Apps",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Select feeds and apps to monitor",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.onSurfaceVariant
+                    )
+                }
+
+                Button(
+                    onClick = onNavigateToAppSelection,
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
+                ) {
+                    Text("Select Apps", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(28.dp))
+
+        // 5. BSMAS Section
+        SectionHeader(number = 5, title = "Baseline Assessment (BSMAS)")
         Spacer(modifier = Modifier.height(12.dp))
         Text(
-            text = "Rate your social media use over the last year. 1 = Very Rarely, 5 = Very Often.",
+            text = "Rate your social media usage over the last year (1 = Very Rarely, 5 = Very Often):",
             style = MaterialTheme.typography.bodySmall,
             color = colors.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 12.dp)
@@ -293,18 +365,15 @@ fun ProfileSetupHubScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(40.dp))
+        Spacer(modifier = Modifier.height(36.dp))
 
-        Button(
+        GradientButton(
+            text = "Complete Profile",
             onClick = { viewModel.completeOnboarding(onComplete) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
             enabled = isComplete,
-            shape = MaterialTheme.shapes.medium
-        ) {
-            Text("Complete Profile", style = MaterialTheme.typography.titleMedium)
-        }
+            icon = Icons.AutoMirrored.Filled.ArrowForward,
+            modifier = Modifier.fillMaxWidth()
+        )
 
         Spacer(modifier = Modifier.height(40.dp))
     }
@@ -312,6 +381,8 @@ fun ProfileSetupHubScreen(
 
 @Composable
 fun SectionHeader(number: Int, title: String) {
+    val colors = MaterialTheme.colorScheme
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth()
@@ -319,13 +390,16 @@ fun SectionHeader(number: Int, title: String) {
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(28.dp)
-                .background(MaterialTheme.colorScheme.primary, CircleShape)
+                .size(32.dp)
+                .background(
+                    brush = Brush.linearGradient(colors = listOf(colors.primary, colors.secondary)),
+                    shape = CircleShape
+                )
         ) {
             Text(
                 text = number.toString(),
-                color = MaterialTheme.colorScheme.onPrimary,
-                style = MaterialTheme.typography.bodyMedium,
+                color = colors.onPrimary,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
         }
@@ -333,61 +407,8 @@ fun SectionHeader(number: Int, title: String) {
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun TimePickerCard(
-    title: String,
-    time: LocalTime,
-    onTimeChange: (LocalTime) -> Unit
-) {
-    var showDialog by remember { mutableStateOf(false) }
-    val timeState = rememberTimePickerState(initialHour = time.hour, initialMinute = time.minute)
-    val formatter = DateTimeFormatter.ofPattern("hh:mm a")
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { showDialog = true },
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            Text(
-                text = time.format(formatter),
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
-    }
-    if (showDialog) {
-        AlertDialog(
-            onDismissRequest = { showDialog = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    onTimeChange(LocalTime.of(timeState.hour, timeState.minute))
-                    showDialog = false
-                }) { Text("Confirm") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDialog = false }) { Text("Cancel") }
-            },
-            text = {
-                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    TimePicker(state = timeState)
-                }
-            }
+            fontWeight = FontWeight.Bold,
+            color = colors.onSurface
         )
     }
 }
@@ -398,14 +419,20 @@ fun BsmasQuestionItem(
     score: Int,
     onScoreChange: (Int) -> Unit
 ) {
+    val colors = MaterialTheme.colorScheme
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
+        border = BorderStroke(1.dp, colors.outlineVariant)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = question, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                text = question,
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.onSurface
+            )
             Spacer(modifier = Modifier.height(12.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -416,7 +443,16 @@ fun BsmasQuestionItem(
                     FilterChip(
                         selected = score == value,
                         onClick = { onScoreChange(value) },
-                        label = { Text(value.toString()) }
+                        label = {
+                            Text(
+                                text = value.toString(),
+                                fontWeight = if (score == value) FontWeight.Bold else FontWeight.Normal
+                            )
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = colors.primary,
+                            selectedLabelColor = colors.onPrimary
+                        )
                     )
                 }
             }

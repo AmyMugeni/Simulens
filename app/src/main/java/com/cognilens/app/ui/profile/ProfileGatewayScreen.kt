@@ -5,24 +5,32 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.cognilens.app.ui.components.GradientButton
 
 @Composable
 fun ProfileGatewayScreen(
     onNavigateNext: () -> Unit
 ) {
+    val colors = MaterialTheme.colorScheme
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(colors.background)
             .systemBarsPadding()
             .padding(horizontal = 24.dp)
     ) {
@@ -34,24 +42,31 @@ fun ProfileGatewayScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Box(
-                contentAlignment = Alignment.Center,
+            Surface(
                 modifier = Modifier
                     .size(112.dp)
-                    .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
+                    .clip(CircleShape),
+                shape = CircleShape,
+                color = colors.primaryContainer,
+                border = BorderStroke(
+                    width = 2.dp,
+                    brush = Brush.linearGradient(colors = listOf(colors.primary, colors.secondary))
+                )
             ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(76.dp)
-                        .background(MaterialTheme.colorScheme.primary, CircleShape)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Person,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(40.dp)
-                    )
+                Box(contentAlignment = Alignment.Center) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(76.dp)
+                            .background(colors.primary, CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Person,
+                            contentDescription = null,
+                            tint = colors.onPrimary,
+                            modifier = Modifier.size(42.dp)
+                        )
+                    }
                 }
             }
 
@@ -60,16 +75,17 @@ fun ProfileGatewayScreen(
             Text(
                 text = "Set Up Your Profile",
                 style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground,
+                fontWeight = FontWeight.Bold,
+                color = colors.onBackground,
                 textAlign = TextAlign.Center
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "Before using CogniLens, you need to configure your profile. Complete these three steps to reach 100% completion.",
+                text = "Before using CogniLens, configure your student profile to reach 100% completion.",
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = colors.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
 
@@ -77,52 +93,46 @@ fun ProfileGatewayScreen(
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.large,
+                shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                    containerColor = colors.surfaceContainerLow
                 ),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                border = BorderStroke(1.dp, colors.outlineVariant),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(modifier = Modifier.padding(vertical = 8.dp)) {
-                    SetupStepRow(1, "Complete your schedule")
+                    SetupStepRow(1, "Configure wake & sleep boundaries")
                     HorizontalDivider(
                         modifier = Modifier.padding(horizontal = 20.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant
+                        color = colors.outlineVariant
                     )
-                    SetupStepRow(2, "Upload your timetable")
+                    SetupStepRow(2, "Upload your academic timetable")
                     HorizontalDivider(
                         modifier = Modifier.padding(horizontal = 20.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant
+                        color = colors.outlineVariant
                     )
-                    SetupStepRow(3, "Take the baseline assessment")
+                    SetupStepRow(3, "Take BSMAS baseline assessment")
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
         }
 
-        Button(
+        GradientButton(
+            text = "Set Up Profile",
             onClick = onNavigateNext,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            shape = MaterialTheme.shapes.medium,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ),
-            elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
-        ) {
-            Text("Set Up Profile", style = MaterialTheme.typography.titleMedium)
-        }
+            icon = Icons.AutoMirrored.Filled.ArrowForward,
+            modifier = Modifier.fillMaxWidth()
+        )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(28.dp))
     }
 }
 
 @Composable
 private fun SetupStepRow(number: Int, label: String) {
+    val colors = MaterialTheme.colorScheme
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -132,20 +142,22 @@ private fun SetupStepRow(number: Int, label: String) {
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(32.dp)
-                .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
+                .size(34.dp)
+                .background(colors.primaryContainer, CircleShape)
         ) {
             Text(
                 text = number.toString(),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = colors.onPrimaryContainer
             )
         }
         Spacer(modifier = Modifier.width(16.dp))
         Text(
             text = label,
             style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface
+            fontWeight = FontWeight.Medium,
+            color = colors.onSurface
         )
     }
 }

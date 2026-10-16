@@ -7,18 +7,23 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.cognilens.app.data.tracker.AppUsageTrackerService
 import com.cognilens.app.data.tracker.PermissionUtils
+import com.cognilens.app.ui.components.GradientButton
+import com.cognilens.app.ui.components.PillBadge
 
 @Composable
 fun PermissionsScreen(
@@ -40,17 +45,21 @@ fun PermissionsScreen(
         Text(
             text = "Grant System Access",
             style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground
         )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
         Text(
             text = "CogniLens needs system access to detect compulsive app launches and display real-time focus interventions.",
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 8.dp)
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         Spacer(modifier = Modifier.height(32.dp))
 
+        // Permission Card 1: Usage Access
         PermissionCard(
             step = 1,
             title = "Usage Access",
@@ -64,6 +73,7 @@ fun PermissionsScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Permission Card 2: Display Over Apps
         PermissionCard(
             step = 2,
             title = "Display Over Apps",
@@ -94,7 +104,8 @@ fun PermissionsScreen(
             )
         }
 
-        Button(
+        GradientButton(
+            text = "Continue",
             onClick = {
                 if (hasUsagePermission) {
                     val serviceIntent = Intent(context, AppUsageTrackerService::class.java)
@@ -103,22 +114,11 @@ fun PermissionsScreen(
                 onNavigateNext()
             },
             enabled = hasUsagePermission,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            shape = MaterialTheme.shapes.medium,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-            ),
-            elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
-        ) {
-            Text("Continue", style = MaterialTheme.typography.titleMedium)
-        }
+            icon = Icons.AutoMirrored.Filled.ArrowForward,
+            modifier = Modifier.fillMaxWidth()
+        )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(28.dp))
     }
 }
 
@@ -132,58 +132,79 @@ private fun PermissionCard(
 ) {
     val colors = MaterialTheme.colorScheme
 
+    val containerColor = if (isGranted) {
+        colors.primaryContainer.copy(alpha = 0.5f)
+    } else {
+        colors.surfaceContainerLow
+    }
+
+    val borderColor = if (isGranted) {
+        colors.primary
+    } else {
+        colors.outlineVariant
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(
-            containerColor = if (isGranted) colors.primaryContainer.copy(alpha = 0.35f)
-            else colors.surfaceContainerLow
-        ),
-        border = BorderStroke(
-            width = if (isGranted) 1.5.dp else 1.dp,
-            color = if (isGranted) colors.primary else colors.outlineVariant
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        border = BorderStroke(width = if (isGranted) 1.5.dp else 1.dp, color = borderColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // Step badge turns into a check once granted
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .size(36.dp)
+                        .size(40.dp)
                         .background(
-                            if (isGranted) colors.primary else colors.surfaceVariant,
-                            CircleShape
+                            color = if (isGranted) colors.primary else colors.secondaryContainer,
+                            shape = CircleShape
                         )
                 ) {
                     if (isGranted) {
                         Icon(
                             imageVector = Icons.Filled.Check,
-                            contentDescription = null,
+                            contentDescription = "Permission Granted",
                             tint = colors.onPrimary,
                             modifier = Modifier.size(20.dp)
                         )
                     } else {
                         Text(
                             text = step.toString(),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = colors.onSurfaceVariant
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.onSecondaryContainer
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(14.dp))
 
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
                     color = colors.onSurface,
                     modifier = Modifier.weight(1f)
                 )
+
+                if (isGranted) {
+                    PillBadge(
+                        text = "Granted",
+                        containerColor = colors.primary,
+                        contentColor = colors.onPrimary
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Text(
                 text = description,
@@ -191,34 +212,23 @@ private fun PermissionCard(
                 color = colors.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            if (!isGranted) {
+                Spacer(modifier = Modifier.height(16.dp))
 
-            if (isGranted) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Filled.Check,
-                        contentDescription = null,
-                        tint = colors.primary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Granted",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = colors.primary
-                    )
-                }
-            } else {
-                FilledTonalButton(
+                Button(
                     onClick = onRequest,
                     modifier = Modifier.height(44.dp),
-                    shape = MaterialTheme.shapes.small,
-                    colors = ButtonDefaults.filledTonalButtonColors(
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
                         containerColor = colors.primaryContainer,
                         contentColor = colors.onPrimaryContainer
                     )
                 ) {
-                    Text("Enable", style = MaterialTheme.typography.labelLarge)
+                    Text(
+                        text = "Enable Access",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
