@@ -27,11 +27,9 @@ class TimetableImportViewModel(
     private val repository: TimetableRepository
 ) : ViewModel() {
 
-    // 1. Manages loading, success, and error UI feedback tracks
     private val _state = MutableStateFlow<ImportState>(ImportState.Idle)
     val state: StateFlow<ImportState> = _state.asStateFlow()
 
-    // 2. Streams the saved row database element counts live into your text badge rows
     val entryCount: StateFlow<Int> = repository.savedTimetable
         .map { it.size }
         .stateIn(
@@ -40,20 +38,22 @@ class TimetableImportViewModel(
             initialValue = 0
         )
 
-    /**
-     * Reads a PDF document stream out of a system URI provider framework,
-     * wraps it inside a multipart envelope, and forwards execution blocks to Render.
-     */
+    fun clearTimetable(onSuccess: () -> Unit = {}) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.clearTimetable()
+            launch(Dispatchers.Main) {
+                onSuccess()
+            }
+        }
+    }
+
     fun uploadAndParsePdf(uri: Uri, context: Context, onCompletionSuccess: () -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
             _state.value = ImportState.Loading
             val contentResolver = context.contentResolver
 
             try {
-                // Determine original filename elements out of content uri provider headers
                 val fileName = getFileName(uri, contentResolver) ?: "timetable.pdf"
-
-                // Read input binary chunks straight from context streams into memory allocations
                 val inputStream = contentResolver.openInputStream(uri)
                 if (inputStream == null) {
                     _state.value = ImportState.Error("Unable to open selected document stream.")
@@ -62,17 +62,14 @@ class TimetableImportViewModel(
                 val fileBytes = inputStream.readBytes()
                 inputStream.close()
 
-                // Package bytes into an OkHttp Multipart Body configuration block
                 val requestFile = fileBytes.toRequestBody("application/pdf".toMediaTypeOrNull(), 0, fileBytes.size)
                 val bodyPart = MultipartBody.Part.createFormData("file", fileName, requestFile)
 
-                // Send request block to the remote cloud server endpoint
                 val result = repository.uploadAndSaveTimetable(bodyPart)
 
                 result.fold(
-                    onSuccess = { message ->
+                    onSuccess = {
                         _state.value = ImportState.Success
-                        // Triggers the onboarding state modification inside your structural hub UI
                         launch(Dispatchers.Main) {
                             onCompletionSuccess()
                         }
@@ -102,7 +99,6 @@ class TimetableImportViewModel(
         return name ?: uri.path?.substringAfterLast('/')
     }
 
-    // 3. Factory initialization configuration to assemble dependencies cleanly without complex DI dependencies
     companion object {
         fun factory(context: Context): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")

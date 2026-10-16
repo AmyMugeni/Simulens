@@ -13,6 +13,10 @@ class TimetableRepository(
     // Expose the live room stream to feed directly into your Composable layouts
     val savedTimetable: Flow<List<TimetableEntry>> = timetableDao.getTimetableFlow()
 
+    suspend fun clearTimetable() {
+        timetableDao.clearTimetable()
+    }
+
     suspend fun uploadAndSaveTimetable(filePart: MultipartBody.Part): Result<String> {
         return try {
             val response = apiService.uploadTimetable(filePart)
@@ -23,15 +27,15 @@ class TimetableRepository(
                 val dbEntries = apiData.timetable.map { map ->
                     TimetableEntry(
                         day = map["day"] ?: "Unknown",
-                        slot1 = map["8.15 - 9.15"] ?: "-",
-                        slot2 = map["9.15 – 10.15"] ?: "-",
-                        slot3 = map["10.15 – 11.15"] ?: "-",
-                        slot4 = map["11.15 – 12.15"] ?: "-",
-                        slot5 = map["12.15 - 1.15"] ?: "-",
-                        slot6 = map["1.15 - 2.15"] ?: "-",
-                        slot7 = map["2.15 – 3.15"] ?: "-",
-                        slot8 = map["3.15 – 4.15"] ?: "-",
-                        slot9 = map["4.15 - 5.15"] ?: "-"
+                        slot1 = map["8.15 - 9.15"] ?: map["8.15 – 9.15"] ?: "-",
+                        slot2 = map["9.15 - 10.15"] ?: map["9.15 – 10.15"] ?: "-",
+                        slot3 = map["10.15 - 11.15"] ?: map["10.15 – 11.15"] ?: "-",
+                        slot4 = map["11.15 - 12.15"] ?: map["11.15 – 12.15"] ?: "-",
+                        slot5 = map["12.15 - 1.15"] ?: map["12.15 – 1.15"] ?: "-",
+                        slot6 = map["1.15 - 2.15"] ?: map["1.15 – 2.15"] ?: "-",
+                        slot7 = map["2.15 - 3.15"] ?: map["2.15 – 3.15"] ?: "-",
+                        slot8 = map["3.15 - 4.15"] ?: map["3.15 – 4.15"] ?: "-",
+                        slot9 = map["4.15 - 5.15"] ?: map["4.15 – 5.15"] ?: "-"
                     )
                 }
 

@@ -16,6 +16,7 @@ object RetrofitClient {
                 .addInterceptor(this)
                 .connectTimeout(100, TimeUnit.SECONDS)
                 .readTimeout(100, TimeUnit.SECONDS)
+                .writeTimeout(100, TimeUnit.SECONDS)
                 .build()
         }
     }
