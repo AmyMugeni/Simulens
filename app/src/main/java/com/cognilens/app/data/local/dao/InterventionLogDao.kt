@@ -17,4 +17,10 @@ interface InterventionLogDao {
 
     @Query("SELECT COUNT(*) FROM intervention_logs WHERE timestamp >= :startTime")
     suspend fun getInterventionCountSince(startTime: Long): Int
+
+    @Query("DELETE FROM intervention_logs")
+    suspend fun clearAllLogs()
+
+    @Query("DELETE FROM intervention_logs WHERE id = :id")
+    suspend fun deleteLogById(id: Long)
 }

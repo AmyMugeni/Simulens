@@ -6,6 +6,7 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "behavioral_sessions")
 data class BehavioralSession(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val packageName: String = "",
     val timestamp: Long = System.currentTimeMillis(),
     val elapsedDuration: Double,
     val previousSessionGap: Double,
