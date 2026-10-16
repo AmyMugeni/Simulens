@@ -2,34 +2,68 @@ package com.cognilens.app.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Palette
-val SteelBlue = Color(0xFF3D5A80)
-val SkyBlue = Color(0xFF98C1D9)
-val Ice = Color(0xFFE0FBFC)
-val Coral = Color(0xFFEE6C4D)
-val Navy = Color(0xFF293241)
+// Primary - Electric Indigo / Cobalt
+val PrimaryIndigo = Color(0xFF4F46E5)
+val PrimaryIndigoLight = Color(0xFF6366F1)
+val PrimaryIndigoDark = Color(0xFF818CF8)
 
-// Light
-val LightBackground = Color(0xFFF4FCFD)   // lighter tint of Ice so cards stand out
-val LightOnSurfaceVariant = Color(0xFF4A5A6E)
-val LightOutline = Color(0xFFB5C9D6)
-val LightOutlineVariant = Color(0xFFCFDDE6)
-val CoralContainer = Color(0xFFFFDCD3)
-val ErrorLight = Color(0xFFBA3B4B)
-val ErrorContainerLight = Color(0xFFFADCE1)
+val PrimaryIndigoContainerLight = Color(0xFFEEF2FF)
+val OnPrimaryIndigoContainerLight = Color(0xFF312E81)
+val PrimaryIndigoContainerDark = Color(0xFF312E81)
+val OnPrimaryIndigoContainerDark = Color(0xFFE0E7FF)
 
-// Dark
-val DarkBackground = Color(0xFF1B222D)
-val DarkSurfaceLow = Color(0xFF222B38)
-val DarkOnSurfaceVariant = Color(0xFFA9BCC9)
-val DarkOutline = Color(0xFF3D4A5C)
-val ErrorDark = Color(0xFFFFB3BD)
-val ErrorContainerDark = Color(0xFF5C1F2B)
+// Secondary - Bright Teal / Cyan Focus
+val SecondaryTeal = Color(0xFF0EA5E9)
+val SecondaryTealLight = Color(0xFF0284C7)
+val SecondaryTealDark = Color(0xFF38BDF8)
 
-// Risk levels
-val RiskLow = Color(0xFF2F9E6B)
-val RiskLowBg = Color(0xFFDDF3E8)
-val RiskModerate = Color(0xFFD99A1E)
-val RiskModerateBg = Color(0xFFFCEFD0)
-val RiskHigh = Color(0xFFD4566B)
-val RiskHighBg = Color(0xFFFADCE1)
+val SecondaryTealContainerLight = Color(0xFFE0F2FE)
+val OnSecondaryTealContainerLight = Color(0xFF0369A1)
+val SecondaryTealContainerDark = Color(0xFF075985)
+val OnSecondaryTealContainerDark = Color(0xFFBAE6FD)
+
+// Tertiary - Sunset Coral / Rose Accent
+val TertiaryCoral = Color(0xFFF43F5E)
+val TertiaryCoralLight = Color(0xFFE11D48)
+val TertiaryCoralDark = Color(0xFFFB7185)
+
+val TertiaryCoralContainerLight = Color(0xFFFFE4E6)
+val OnTertiaryCoralContainerLight = Color(0xFF9F1239)
+val TertiaryCoralContainerDark = Color(0xFF881337)
+val OnTertiaryCoralContainerDark = Color(0xFFFECDD3)
+
+// Light Theme Surface Tokens (Slate 50 / 100 / 200)
+val LightBackground = Color(0xFFF8FAFC)
+val LightOnBackground = Color(0xFF0F172A)
+val LightSurfaceLow = Color(0xFFF1F5F9)
+val LightSurfaceContainer = Color(0xFFE2E8F0)
+val LightSurfaceHigh = Color(0xFFCBD5E1)
+val LightSurfaceVariant = Color(0xFFE2E8F0)
+val LightOnSurfaceVariant = Color(0xFF475569)
+val LightOutline = Color(0xFFCBD5E1)
+val LightOutlineVariant = Color(0xFFE2E8F0)
+
+// Dark Theme Surface Tokens (Rich Slate Obsidian 900 / 800 / 700)
+val DarkBackground = Color(0xFF0F172A)
+val DarkOnBackground = Color(0xFFF8FAFC)
+val DarkSurfaceLow = Color(0xFF1E293B)
+val DarkSurfaceContainer = Color(0xFF334155)
+val DarkSurfaceHigh = Color(0xFF475569)
+val DarkSurfaceVariant = Color(0xFF1E293B)
+val DarkOnSurfaceVariant = Color(0xFF94A3B8)
+val DarkOutline = Color(0xFF334155)
+val DarkOutlineVariant = Color(0xFF1E293B)
+
+// Errors
+val ErrorLight = Color(0xFFDC2626)
+val ErrorContainerLight = Color(0xFFFEE2E2)
+val ErrorDark = Color(0xFFA855F7)
+val ErrorContainerDark = Color(0xFF581C87)
+
+// Risk Levels
+val RiskLow = Color(0xFF10B981)
+val RiskLowBg = Color(0xFFECFDF5)
+val RiskModerate = Color(0xFFF59E0B)
+val RiskModerateBg = Color(0xFFFFFBEB)
+val RiskHigh = Color(0xFFEF4444)
+val RiskHighBg = Color(0xFFFEF2F2)
