@@ -19,6 +19,8 @@ val rawApiKey = localProperties.getProperty("GROQ_API_KEY")
     ?: localProperties.getProperty("OPENAI_API_KEY") 
     ?: ""
 
+val rawGoogleWebClientId = localProperties.getProperty("GOOGLE_WEB_CLIENT_ID") ?: ""
+
 // Sanitize: Remove quotes, whitespace, and potential 'Bearer ' prefixes
 val sanitizedApiKey = rawApiKey.trim()
     .removeSurrounding("\"")
@@ -26,12 +28,16 @@ val sanitizedApiKey = rawApiKey.trim()
     .removePrefix("Bearer ")
     .trim()
 
+val sanitizedGoogleWebClientId = rawGoogleWebClientId.trim()
+    .removeSurrounding("\"")
+    .removeSurrounding("'")
+
 android {
-    namespace = "com.cognilens.app"
+    namespace = "com.simulens.app"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.cognilens.app"
+        applicationId = "com.simulens.app"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
@@ -41,6 +47,7 @@ android {
 
         // This passes the key to TimetableExtractor via BuildConfig.AI_API_KEY
         buildConfigField("String", "AI_API_KEY", "\"$sanitizedApiKey\"")
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$sanitizedGoogleWebClientId\"")
     }
 
     buildTypes {
@@ -91,6 +98,11 @@ dependencies {
     implementation(libs.okhttp)
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.3")
     implementation(libs.onnxruntime.android)
+
+    // Google Auth & Credentials
+    implementation("com.google.android.gms:play-services-auth:21.3.0")
+    implementation("androidx.credentials:credentials:1.3.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
 
     // Room
     implementation(libs.androidx.room.runtime)

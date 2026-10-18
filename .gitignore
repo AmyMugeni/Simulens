@@ -7,3 +7,6 @@ app/build/
 *.ap_
 *.apk
 *.dex
+
+# Local configuration
+local.properties
