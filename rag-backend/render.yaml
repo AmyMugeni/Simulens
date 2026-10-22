@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: cognilens-rag
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt && python -m app.warmup
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: LLM_API_KEY
+        sync: false
+      - key: LLM_BASE_URL
+        value: https://api.groq.com/openai/v1
+      - key: LLM_MODEL
+        value: llama-3.3-70b-versatile
+      - key: APP_TOKEN
+        generateValue: true
+      - key: TOP_K
+        value: "4"
+      - key: MIN_SCORE
+        value: "0.45"
