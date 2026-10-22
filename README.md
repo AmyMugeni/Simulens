@@ -1,4 +1,4 @@
-# CogniLens
+# Simulens
 
 An adaptive machine learning and RAG-based digital wellbeing system for classifying social media usage behaviour and delivering personalized interventions among university students.
 
@@ -8,7 +8,7 @@ The project investigates whether behavioural patterns derived from social media 
 
 ## System Overview
 
-CogniLens is designed to:
+Simulens is designed to:
 
 - Monitor social media usage through Android system APIs
 - Detect social media usage sessions
@@ -25,7 +25,7 @@ The system is intended as a digital wellbeing research prototype and does not di
 
 ## Project Structure & Architecture
 
-CogniLens is organized as a modern Android Jetpack Compose application leveraging local on-device machine learning and advanced capabilities:
+Simulens is organized as a modern Android Jetpack Compose application leveraging local on-device machine learning and advanced capabilities:
 
 - **`ui`**: Fully built using Jetpack Compose, featuring an adaptive design including structured flows like onboarding screens (`OnboardingScreen`).
 - **`ml`**: Custom machine learning pipeline tailored for real-time classification of compulsive patterns using structured user traits.
@@ -56,11 +56,11 @@ F1-Score will serve as the primary metric because it balances precision and reca
 ## Repository Structure
 
 ```text
-cognilens/
+simulens/
 ├── app/
 │   └── src/
 │       └── main/
-│           └── java/com/cognilens/app/
+│           └── java/com/simulens/app/
 │               ├── data/         # Data layer & Local persistence (Room)
 │               ├── domain/       # Core business rules & Use cases
 │               ├── ml/           # Machine learning pipeline

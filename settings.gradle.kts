@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Cognilens"
+rootProject.name = "Simulens"
 include(":app")
  
