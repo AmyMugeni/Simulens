@@ -65,21 +65,17 @@ fun DashboardScreen(
                     icon = { Icon(Icons.Default.BarChart, contentDescription = "Stats") },
                     label = { Text("Stats", fontWeight = FontWeight.SemiBold) }
                 )
+                // Insights and Assistant open their own screens, so they don't change
+                // selectedTab. Otherwise coming back would land on an empty tab.
                 NavigationBarItem(
-                    selected = selectedTab == 2,
-                    onClick = {
-                        selectedTab = 2
-                        onNavigateToInsights()
-                    },
+                    selected = false,
+                    onClick = onNavigateToInsights,
                     icon = { Icon(Icons.Default.Shield, contentDescription = "Insights") },
                     label = { Text("Insights", fontWeight = FontWeight.SemiBold) }
                 )
                 NavigationBarItem(
-                    selected = selectedTab == 3,
-                    onClick = {
-                        selectedTab = 3
-                        onNavigateToRag()
-                    },
+                    selected = false,
+                    onClick = onNavigateToRag,
                     icon = { Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = "Assistant") },
                     label = { Text("Assistant", fontWeight = FontWeight.SemiBold) }
                 )
@@ -145,62 +141,9 @@ fun DashboardScreen(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Time-Range Selector Bar
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    TimeRange.entries.forEach { range ->
-                        FilterChip(
-                            selected = state.selectedTimeRange == range,
-                            onClick = { viewModel.setTimeRange(range) },
-                            label = { Text(range.label, fontWeight = FontWeight.Bold) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = colors.primary,
-                                selectedLabelColor = colors.onPrimary
-                            )
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Stat Cards Row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    val screenTimeVal = when (state.selectedTimeRange) {
-                        TimeRange.TODAY -> String.format(Locale.US, "%.0f min", state.todayMinutes)
-                        TimeRange.WEEKLY -> String.format(Locale.US, "%.0f min", state.weeklyTotalMinutes)
-                        TimeRange.ALL_TIME -> String.format(Locale.US, "%.0f min", state.allTimeTotalMinutes)
-                    }
-
-                    val sessionVal = when (state.selectedTimeRange) {
-                        TimeRange.TODAY -> state.todaySessions.toString()
-                        TimeRange.WEEKLY -> (state.weekly.sumOf { it.sessionCount }).toString()
-                        TimeRange.ALL_TIME -> state.allTimeTotalSessions.toString()
-                    }
-
-                    StatCard(
-                        modifier = Modifier.weight(1f),
-                        title = "Screen Time",
-                        value = screenTimeVal,
-                        icon = Icons.Default.Timer,
-                        badgeText = state.selectedTimeRange.label,
-                        iconContainerColor = colors.primaryContainer,
-                        iconTint = colors.primary
-                    )
-                    StatCard(
-                        modifier = Modifier.weight(1f),
-                        title = "Sessions",
-                        value = sessionVal,
-                        icon = Icons.Default.Repeat,
-                        badgeText = state.selectedTimeRange.label,
-                        iconContainerColor = colors.secondaryContainer,
-                        iconTint = colors.secondary
-                    )
-                }
+                // Wellness score, today vs baseline, screen time, session frequency, day strip.
+                // Today-only: the range chips live on the Stats tab.
+                WellnessDashboardSection(state = state)
 
                 Spacer(modifier = Modifier.height(28.dp))
 

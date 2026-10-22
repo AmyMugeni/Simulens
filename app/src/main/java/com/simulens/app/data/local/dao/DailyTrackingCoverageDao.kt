@@ -66,4 +66,7 @@ interface DailyTrackingCoverageDao {
     suspend fun deleteBefore(
         cutoffDate: String
     )
+
+    @Query("DELETE FROM daily_tracking_coverage")
+    suspend fun deleteAllCoverageRecords()
 }

@@ -2,11 +2,16 @@ package com.simulens.app.ui.dashboard
 
 import android.app.Application
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.widget.Toast
+import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.simulens.app.data.export.RoomCsvExporter
 import com.simulens.app.data.local.SimulensDatabase
+import java.io.File
 import com.simulens.app.data.local.entity.BehavioralSession
 import com.simulens.app.data.local.entity.InterventionLogEntity
 import com.simulens.app.data.local.entity.TimetableEntry
@@ -125,7 +130,11 @@ data class DashboardState(
     val allTimeTotalMinutes: Double = 0.0,
     val allTimeTotalSessions: Int = 0,
     val daysTrackedCount: Int = 0,
-    val monitoredCount: Int = 0
+    val monitoredCount: Int = 0,
+    /** Today's wellness score, risk level and the reasons behind it (see WellnessEngine). */
+    val wellness: WellnessResult = WellnessResult(),
+    /** The score from midnight to now, for the curve on the wellness card. */
+    val scoreTimeline: List<ScorePoint> = emptyList()
 )
 
 // ---------------------------------------------------------------------------------------------
@@ -414,6 +423,34 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             morningBufferMin = morningBuffer
         )
 
+        // --- Wellness score -------------------------------------------------------------------
+        // Sessions are stored at the moment they end, so each one becomes a span ending at its
+        // timestamp. The baseline days are the same ones behind `comparison` above.
+        fun spansFor(date: LocalDate): List<UsageSpan> {
+            val dayStart = date.atStartOfDay(zone).toInstant().toEpochMilli()
+            return byDate[date].orEmpty().map { s ->
+                val end = (s.timestamp - dayStart) / 60_000.0
+                UsageSpan(startMin = end - s.elapsedDuration, endMin = end)
+            }
+        }
+
+        val baselineDates = when {
+            sameWeekday.size >= 2 -> sameWeekday.map { it.first }
+            validHistory.size >= 3 -> validHistory.map { it.first }
+            else -> emptyList()
+        }
+
+        val wellnessInput = WellnessInput(
+            todaySpans = spansFor(today),
+            baselineDays = baselineDates.map { spansFor(it) },
+            baselineLabel = comparison?.label.orEmpty(),
+            classBands = classBlocks,
+            windDownBands = windDownBlocks,
+            morningBand = morningBlock
+        )
+        val wellness = WellnessEngine.evaluate(wellnessInput, atMin = nowMin + 1.0)
+        val scoreTimeline = WellnessEngine.timeline(wellnessInput, nowMin)
+
         // --- Apps -----------------------------------------------------------------------------
         val weekStart = today.minusDays(6).atStartOfDay(zone).toInstant().toEpochMilli()
         val appsToday = appStats(todaySessions)
@@ -450,7 +487,9 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             allTimeTotalMinutes = allTimeTotalMinutes,
             allTimeTotalSessions = allTimeTotalSessions,
             daysTrackedCount = daysTrackedCount,
-            monitoredCount = input.monitored.size
+            monitoredCount = input.monitored.size,
+            wellness = wellness,
+            scoreTimeline = scoreTimeline
         )
     }
 

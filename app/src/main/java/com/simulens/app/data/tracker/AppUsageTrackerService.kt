@@ -547,70 +547,8 @@ class AppUsageTrackerService : Service() {
 
     private suspend fun syncSystemUsageStatsIfEmpty() {
         try {
-            val zone = ZoneId.systemDefault()
-            val today = LocalDate.now(zone)
-            val startOfDay = today.atStartOfDay(zone).toInstant().toEpochMilli()
-            val endOfDay = today.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli() - 1L
-            val nowMs = System.currentTimeMillis()
-
-            val existingTodayCount = database.behavioralSessionDao().getSessionCountBetween(startOfDay, endOfDay)
-            if (existingTodayCount == 0) {
-                val usageStatsList = usageStatsManager.queryUsageStats(
-                    UsageStatsManager.INTERVAL_DAILY,
-                    startOfDay,
-                    nowMs
-                )
-                if (!usageStatsList.isNullOrEmpty()) {
-                    for (stats in usageStatsList) {
-                        val pkg = stats.packageName ?: continue
-                        if (pkg in monitoredApps && stats.totalTimeInForeground > 1000L) {
-                            val durationMins = (stats.totalTimeInForeground / 60_000.0)
-                            if (durationMins > 0.01) {
-                                val sessionTime = if (stats.lastTimeUsed in startOfDay..nowMs) stats.lastTimeUsed else nowMs
-                                val localDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(sessionTime), zone)
-
-                                val userProfile = cachedUserProfile
-                                val scheduleConflict = interventionEngine.isInClass(localDateTime.toLocalTime(), classesFor(today))
-                                val minutesSinceWake = ChronoUnit.MINUTES.between(userProfile.wakeUpTime, localDateTime.toLocalTime()).toInt()
-                                val minutesUntilSleep = ChronoUnit.MINUTES.between(localDateTime.toLocalTime(), userProfile.sleepTime).toInt()
-
-                                val wakeWindowEnd = userProfile.wakeUpTime.plusMinutes(userProfile.morningBufferMinutes)
-                                val isMorning = isTimeBetween(localDateTime.toLocalTime(), userProfile.wakeUpTime, wakeWindowEnd)
-                                val windDownStart = userProfile.sleepTime.minusMinutes(userProfile.bedtimeBufferMinutes)
-                                val isBedtime = isOvernightWindow(localDateTime.toLocalTime(), windDownStart, userProfile.wakeUpTime)
-
-                                val session = BehavioralSession(
-                                    packageName = pkg,
-                                    timestamp = sessionTime,
-                                    elapsedDuration = durationMins,
-                                    previousSessionGap = 60.0,
-                                    sessionsToday = 0,
-                                    dailySocialMediaDuration = 0.0,
-                                    timeOfDay = localDateTime.hour,
-                                    dayOfWeek = localDateTime.dayOfWeek.value,
-                                    scheduleConflict = if (scheduleConflict) 1 else 0,
-                                    minutesSinceWake = minutesSinceWake,
-                                    minutesUntilSleep = minutesUntilSleep,
-                                    morningSocialMedia = if (isMorning) 1 else 0,
-                                    bedtimeSocialMedia = if (isBedtime) 1 else 0,
-                                    baselineDurationRatio = 1.0,
-                                    baselineFrequencyRatio = 1.0,
-                                    label = 0
-                                )
-                                database.behavioralSessionDao().insertSessionWithDailyTotals(
-                                    session = session,
-                                    startOfDayTimestamp = startOfDay,
-                                    endOfDayTimestamp = endOfDay,
-                                    baselineDailyMinutes = null,
-                                    baselineSessionsPerDay = null
-                                )
-                            }
-                        }
-                    }
-                    Log.d("Simulens", "Synced initial UsageStats from system for today.")
-                    refreshSnapshot()
-                }
-            }
+            HistoricalUsageSyncer.sync(applicationContext, database, lookbackDays = 14)
+            refreshSnapshot()
         } catch (e: Exception) {
             Log.e("Simulens", "Error syncing system usage stats", e)
         }

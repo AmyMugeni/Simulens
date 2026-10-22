@@ -15,7 +15,7 @@ import com.simulens.app.data.local.dao.DailyTrackingCoverageDao
 
 @Database(
     entities = [InterventionLogEntity::class, DailyTrackingCoverageEntity::class, TimetableEntry::class, BehavioralSession::class],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 abstract class SimulensDatabase : RoomDatabase() {
