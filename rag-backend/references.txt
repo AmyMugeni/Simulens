@@ -1,0 +1,7 @@
+# One link per line. Optional title after a pipe:  URL | Title
+# Replace these examples with your project's references. Open-access papers and organisation pages work best.
+# Also add a few practical, non-paper pages (WHO/APA guidance, sleep hygiene, app-limit techniques)
+# so the assistant has actionable advice to retrieve, not just research findings.
+#
+# https://example.org/open-access-paper.pdf | Author (2022) Title of the paper
+# https://example.org/guidance-page | Organisation guidance on screen time

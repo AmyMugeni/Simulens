@@ -1,0 +1,4 @@
+-r requirements.txt
+requests>=2.31
+trafilatura>=1.9
+pypdf>=4.0
