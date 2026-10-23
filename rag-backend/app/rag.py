@@ -10,10 +10,10 @@ from .embedder import embed_query
 
 NO_INFO_MESSAGE = (
     "I don't have reliable information on that in my sources, so I'd rather not guess. "
-    "You could try rephrasing the question, or talk it through with a campus counsellor."
+    "You could try rephrasing the question, or do a global search in your web browser."
 )
 
-SYSTEM_PROMPT = """You are CogniLens Assistant, a supportive guide inside a student wellbeing app about social media use.
+SYSTEM_PROMPT = """You are SimuLens Assistant, a supportive guide inside a student wellbeing app about social media use.
 
 Rules:
 - Answer using ONLY the numbered SOURCES. If they do not contain the answer, say you do not have reliable information on that and suggest speaking with a campus counsellor.
@@ -103,11 +103,14 @@ async def call_llm(messages: list[dict]) -> str:
                 "model": config.LLM_MODEL,
                 "messages": messages,
                 "temperature": 0.3,
-                "max_tokens": 450,
+                "max_tokens": 1500,
             },
         )
     r.raise_for_status()
-    return r.json()["choices"][0]["message"]["content"].strip()
+        text = (r.json()["choices"][0]["message"].get("content") or "").strip()
+    if not text:
+        raise RuntimeError("The model returned an empty answer.")
+    return text
 
 
 def cited_sources(answer: str, hits) -> list[dict]:
