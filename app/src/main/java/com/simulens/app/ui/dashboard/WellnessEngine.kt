@@ -337,13 +337,13 @@ object WellnessEngine {
 
 fun formatDuration(minutes: Double): String {
     val total = minutes.roundToInt()
-    if (total <= 0) return "0 min"
+    if (total <= 0) return "0min"
     val h = total / 60
     val m = total % 60
     return when {
-        h > 0 && m > 0 -> "${h}h ${m}m"
-        h > 0 -> "${h}h"
-        else -> "$m min"
+        h > 0 && m > 0 -> "${h}hr ${m}min"
+        h > 0 -> "${h}hr"
+        else -> "${m}min"
     }
 }
 

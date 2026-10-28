@@ -20,6 +20,16 @@ val rawApiKey = localProperties.getProperty("GROQ_API_KEY")
     ?: ""
 
 val rawGoogleWebClientId = localProperties.getProperty("GOOGLE_WEB_CLIENT_ID") ?: ""
+val rawRagBaseUrl = localProperties.getProperty("RAG_BASE_URL")
+    ?.trim()
+    ?.removeSurrounding("\"")
+    ?.removeSurrounding("'")
+    ?.ifBlank { null }
+    ?: "http://10.0.2.2:8000"
+
+val rawRagAppToken = localProperties.getProperty("RAG_APP_TOKEN")
+    ?: localProperties.getProperty("APP_TOKEN")
+    ?: ""
 
 // Sanitize: Remove quotes, whitespace, and potential 'Bearer ' prefixes
 val sanitizedApiKey = rawApiKey.trim()
@@ -29,6 +39,14 @@ val sanitizedApiKey = rawApiKey.trim()
     .trim()
 
 val sanitizedGoogleWebClientId = rawGoogleWebClientId.trim()
+    .removeSurrounding("\"")
+    .removeSurrounding("'")
+
+val sanitizedRagBaseUrl = rawRagBaseUrl.trim()
+    .removeSurrounding("\"")
+    .removeSurrounding("'")
+
+val sanitizedRagAppToken = rawRagAppToken.trim()
     .removeSurrounding("\"")
     .removeSurrounding("'")
 
@@ -48,11 +66,14 @@ android {
         // This passes the key to TimetableExtractor via BuildConfig.AI_API_KEY
         buildConfigField("String", "AI_API_KEY", "\"$sanitizedApiKey\"")
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$sanitizedGoogleWebClientId\"")
+        buildConfigField("String", "RAG_BASE_URL", "\"$sanitizedRagBaseUrl\"")
+        buildConfigField("String", "RAG_APP_TOKEN", "\"$sanitizedRagAppToken\"")
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

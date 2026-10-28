@@ -20,7 +20,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -65,8 +64,6 @@ fun DashboardScreen(
                     icon = { Icon(Icons.Default.BarChart, contentDescription = "Stats") },
                     label = { Text("Stats", fontWeight = FontWeight.SemiBold) }
                 )
-                // Insights and Assistant open their own screens, so they don't change
-                // selectedTab. Otherwise coming back would land on an empty tab.
                 NavigationBarItem(
                     selected = false,
                     onClick = onNavigateToInsights,
@@ -141,8 +138,9 @@ fun DashboardScreen(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Wellness score, today vs baseline, screen time, session frequency, day strip.
-                // Today-only: the range chips live on the Stats tab.
+
+
+                // Behavioral Wellness Cards (Score, Risk Level, Today vs Baseline, Screen Time, Session Frequency, Timeline Strip)
                 WellnessDashboardSection(state = state)
 
                 Spacer(modifier = Modifier.height(28.dp))
@@ -238,7 +236,7 @@ fun DashboardScreen(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "${ongoingClass.remainingMinutes} mins remaining",
+                                text = "${formatDuration(ongoingClass.remainingMinutes)} remaining",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = colors.onPrimaryContainer.copy(alpha = 0.8f)
@@ -388,25 +386,7 @@ fun DashboardScreen(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Time-Range Selector Bar
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    TimeRange.entries.forEach { range ->
-                        FilterChip(
-                            selected = state.selectedTimeRange == range,
-                            onClick = { viewModel.setTimeRange(range) },
-                            label = { Text(range.label, fontWeight = FontWeight.Bold) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = colors.primary,
-                                selectedLabelColor = colors.onPrimary
-                            )
-                        )
-                    }
-                }
 
-                Spacer(modifier = Modifier.height(20.dp))
 
                 // Weekly Usage Trends Bar Chart
                 WeeklyUsageGraphCard(
@@ -472,129 +452,78 @@ fun DashboardScreen(
                     colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
                     border = BorderStroke(1.dp, colors.outlineVariant)
                 ) {
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(20.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(20.dp)
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "CSV Data Export",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.onSurface
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "Export behavioral sessions & tracking data for ML forecasting",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = colors.onSurfaceVariant
-                            )
-                        }
+                        Text(
+                            text = "CSV Data Export",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Export and view all historical behavioral sessions & tracking data for ML forecasting",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
 
                         val isExporting by viewModel.isExportingCsv.collectAsState()
                         val context = LocalContext.current
 
-                        Button(
-                            onClick = {
-                                viewModel.exportCsv(context) { message ->
-                                    Toast.makeText(context, message, Toast.LENGTH_LONG).show()
-                                }
-                            },
-                            enabled = !isExporting,
-                            shape = RoundedCornerShape(14.dp)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            if (isExporting) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(18.dp),
-                                    color = colors.onPrimary,
-                                    strokeWidth = 2.dp
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Exporting...", fontWeight = FontWeight.Bold)
-                            } else {
+                            Button(
+                                onClick = {
+                                    viewModel.exportCsv(context) { message ->
+                                        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                                    }
+                                },
+                                enabled = !isExporting,
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(14.dp)
+                            ) {
+                                if (isExporting) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(18.dp),
+                                        color = colors.onPrimary,
+                                        strokeWidth = 2.dp
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Exporting...", fontWeight = FontWeight.Bold)
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.Download,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Export CSV", fontWeight = FontWeight.Bold)
+                                }
+                            }
+
+                            OutlinedButton(
+                                onClick = { viewModel.shareExportedCsv(context) },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(14.dp)
+                            ) {
                                 Icon(
-                                    imageVector = Icons.Default.Download,
+                                    imageVector = Icons.Default.Share,
                                     contentDescription = null,
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Export Data to CSV", fontWeight = FontWeight.Bold)
+                                Text("Share / Open", fontWeight = FontWeight.Bold)
                             }
                         }
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun StatCard(
-    modifier: Modifier = Modifier,
-    title: String,
-    value: String,
-    icon: ImageVector,
-    badgeText: String,
-    iconContainerColor: Color,
-    iconTint: Color
-) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(42.dp)
-                        .background(iconContainerColor, CircleShape)
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = iconTint,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-
-                PillBadge(
-                    text = badgeText,
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = value,
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
-            Spacer(modifier = Modifier.height(2.dp))
-
-            Text(
-                text = title,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
     }
 }
@@ -674,7 +603,7 @@ fun MostUsedAppCard(
                             color = colors.onSurface
                         )
                         Text(
-                            text = String.format(Locale.US, "%.0f mins total usage", mostUsedApp.totalMinutes),
+                            text = "${formatDuration(mostUsedApp.totalMinutes)} total usage",
                             style = MaterialTheme.typography.bodyMedium,
                             color = colors.onSurfaceVariant
                         )
@@ -709,7 +638,7 @@ fun MostUsedAppCard(
                                 color = colors.onSurface
                             )
                             Text(
-                                text = String.format(Locale.US, "%.0f min (%.0f%%)", app.totalMinutes, app.percentage),
+                                text = String.format(Locale.US, "%s (%.0f%%)", formatDuration(app.totalMinutes), app.percentage),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = colors.onSurfaceVariant
                             )
@@ -783,7 +712,7 @@ fun WeeklyUsageGraphCard(
                             color = colors.onSurface
                         )
                         Text(
-                            text = String.format(Locale.US, "Total: %.0f min • Avg: %.1f min/session", totalWeeklyMins, avgDuration),
+                            text = "Total: ${formatDuration(totalWeeklyMins)} • Avg: ${formatDuration(avgDuration)}/session",
                             style = MaterialTheme.typography.labelSmall,
                             color = colors.onSurfaceVariant
                         )
@@ -817,7 +746,7 @@ fun WeeklyUsageGraphCard(
                             .fillMaxHeight()
                     ) {
                         Text(
-                            text = if (trend.totalMinutes > 0) String.format(Locale.US, "%.0fm", trend.totalMinutes) else "",
+                            text = if (trend.totalMinutes > 0) formatDuration(trend.totalMinutes) else "",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = if (trend.isToday) colors.primary else colors.onSurfaceVariant,
@@ -953,7 +882,7 @@ fun TimeOfDayInsightsCard(
                             color = colors.onSurface
                         )
                         Text(
-                            text = String.format(Locale.US, "%.0f min (%d sessions)", stat.totalMinutes, stat.sessionCount),
+                            text = "${formatDuration(stat.totalMinutes)} (${stat.sessionCount} sessions)",
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.onSurfaceVariant
                         )

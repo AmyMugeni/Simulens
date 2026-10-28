@@ -731,9 +731,8 @@ private fun MetricCard(
 // Small formatting helpers
 // ---------------------------------------------------------------------------------------------
 
-/** 40 -> "40 min", 75 -> "1h 15m". */
-private fun durationWords(minutes: Int): String =
-    if (minutes < 60) "$minutes min" else formatDuration(minutes.toDouble())
+/** 40 -> "40min", 90 -> "1hr 30min". */
+private fun durationWords(minutes: Int): String = formatDuration(minutes.toDouble())
 
 private fun signedDuration(deltaMin: Double): String {
     val rounded = deltaMin.roundToInt()

@@ -158,6 +158,11 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             _isExportingCsv.value = true
             try {
+                com.simulens.app.data.tracker.HistoricalUsageSyncer.sync(
+                    context = context.applicationContext,
+                    database = database,
+                    lookbackDays = 14
+                )
                 val files = RoomCsvExporter.export(
                     context = context,
                     sessionDao = behavioralSessionDao,
@@ -169,6 +174,34 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 onResult("Failed to export CSV: ${e.localizedMessage}")
             } finally {
                 _isExportingCsv.value = false
+            }
+        }
+    }
+
+    fun shareExportedCsv(context: Context) {
+        viewModelScope.launch {
+            try {
+                val dir = File(context.filesDir, "ml_export")
+                val sessionFile = File(dir, "behavioral_sessions.csv")
+                if (sessionFile.exists()) {
+                    val uri: Uri = FileProvider.getUriForFile(
+                        context,
+                        "${context.packageName}.fileprovider",
+                        sessionFile
+                    )
+                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/csv"
+                        putExtra(Intent.EXTRA_STREAM, uri)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    val chooser = Intent.createChooser(shareIntent, "Share or Open CSV Export")
+                    chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    context.startActivity(chooser)
+                } else {
+                    Toast.makeText(context, "No exported CSV found. Tap Export first.", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, "Error sharing CSV: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
             }
         }
     }

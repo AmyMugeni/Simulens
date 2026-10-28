@@ -1,5 +1,6 @@
 package com.simulens.app.domain.rules.intervention
 
+import com.simulens.app.ui.dashboard.formatDuration
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -84,12 +85,12 @@ class InterventionEngine(private val config: InterventionConfig = InterventionCo
         if (s.sessionMins < threshold) return null
 
         val times = String.format(Locale.US, "%.1f", s.sessionMins / b.meanSessionMins)
-        val mins = s.sessionMins.roundToInt()
+        val durStr = formatDuration(s.sessionMins)
         return Intervention(
             type = InterventionType.HIGH_SESSION_DEVIATION,
             title = "This visit is running long",
-            message = "You've been on ${s.appLabel} for $mins min, about ${times}x your usual visit.",
-            detail = "visit $mins min vs usual ${String.format(Locale.US, "%.1f", b.meanSessionMins)} min"
+            message = "You've been on ${s.appLabel} for $durStr, about ${times}x your usual visit.",
+            detail = "visit $durStr vs usual ${formatDuration(b.meanSessionMins)}"
         )
     }
 
@@ -103,7 +104,7 @@ class InterventionEngine(private val config: InterventionConfig = InterventionCo
         if (excess < config.minDailyExcessMins) return null
         if (s.todayMinutes < typical * config.dailyDeviationRatio) return null
 
-        val today = s.todayMinutes.roundToInt()
+        val todayStr = formatDuration(s.todayMinutes)
         val comparison = if (typical >= 1.0) {
             "${(excess / typical * 100).roundToInt()}% above your usual by this time"
         } else {
@@ -112,8 +113,8 @@ class InterventionEngine(private val config: InterventionConfig = InterventionCo
         return Intervention(
             type = InterventionType.HIGH_DAILY_DEVIATION,
             title = "Heavier than usual today",
-            message = "You're at $today min on social media today, $comparison.",
-            detail = "today $today min vs typical ${typical.roundToInt()} min"
+            message = "You're at $todayStr on social media today, $comparison.",
+            detail = "today $todayStr vs typical ${formatDuration(typical)}"
         )
     }
 

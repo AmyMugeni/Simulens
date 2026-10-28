@@ -31,7 +31,8 @@ import java.util.*
 @Composable
 fun InterventionScreen(
     viewModel: InterventionViewModel = viewModel(),
-    onNavigateBack: () -> Unit = {}
+    onNavigateBack: () -> Unit = {},
+    onNavigateToRag: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsState()
     val colors = MaterialTheme.colorScheme
@@ -190,7 +191,8 @@ fun InterventionScreen(
                             log = log,
                             appName = viewModel.getAppName(log.packageName),
                             dateFormat = dateFormat,
-                            onDelete = { viewModel.deleteLog(log.id) }
+                            onDelete = { viewModel.deleteLog(log.id) },
+                            onAskRag = onNavigateToRag
                         )
                     }
                 }
@@ -206,6 +208,7 @@ fun InterventionScreen(
             onDismiss = { viewModel.dismissPreviewNudge() },
             onLearnMore = {
                 viewModel.dismissPreviewNudge()
+                onNavigateToRag()
             }
         )
     }
@@ -398,7 +401,8 @@ private fun InterventionLogCard(
     log: InterventionLogEntity,
     appName: String,
     dateFormat: SimpleDateFormat,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onAskRag: () -> Unit = {}
 ) {
     val colors = MaterialTheme.colorScheme
 
@@ -460,21 +464,39 @@ private fun InterventionLogCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.NotificationsActive,
-                        contentDescription = null,
-                        tint = colors.error,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = log.triggerReason,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Medium,
-                        color = colors.onSurface
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.NotificationsActive,
+                            contentDescription = null,
+                            tint = colors.error,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = log.triggerReason,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium,
+                            color = colors.onSurface
+                        )
+                    }
+
+                    TextButton(
+                        onClick = onAskRag,
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "Ask AI 🤖",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.primary
+                        )
+                    }
                 }
             }
         }

@@ -12,8 +12,13 @@ import androidx.core.content.ContextCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.simulens.app.data.tracker.AppUsageTrackerService
+import com.simulens.app.data.tracker.InterventionActionReceiver
 import com.simulens.app.data.tracker.PermissionUtils
+import com.simulens.app.rag.ChatScreen
+import com.simulens.app.rag.ChatViewModel
 import com.simulens.app.ui.apps.AppSelectionScreen
 import com.simulens.app.ui.dashboard.DashboardScreen
 import com.simulens.app.ui.dashboard.DashboardViewModel
@@ -44,6 +49,12 @@ class MainActivity : ComponentActivity() {
             SimulensTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     val navController = rememberNavController()
+
+                    LaunchedEffect(intent) {
+                        if (intent?.getBooleanExtra(InterventionActionReceiver.EXTRA_OPEN_CHATBOT, false) == true) {
+                            navController.navigate(MainRoutes.ASSISTANT)
+                        }
+                    }
 
                     NavHost(
                         navController = navController,
@@ -121,6 +132,9 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToProfile = {
                                     navController.navigate(OnboardingRoutes.PROFILE)
                                 },
+                                onNavigateToRag = {
+                                    navController.navigate(MainRoutes.ASSISTANT)
+                                },
                                 onNavigateToInsights = {
                                     navController.navigate(MainRoutes.INTERVENTION)
                                 },
@@ -129,6 +143,16 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onNavigateToAppSelection = {
                                     navController.navigate(MainRoutes.APP_SELECTION)
+                                }
+                            )
+                        }
+
+                        composable(MainRoutes.ASSISTANT) {
+                            val chatViewModel: ChatViewModel = viewModel()
+                            ChatScreen(
+                                viewModel = chatViewModel,
+                                onNavigateBack = {
+                                    navController.popBackStack()
                                 }
                             )
                         }
@@ -148,6 +172,9 @@ class MainActivity : ComponentActivity() {
                             InterventionScreen(
                                 onNavigateBack = {
                                     navController.popBackStack()
+                                },
+                                onNavigateToRag = {
+                                    navController.navigate(MainRoutes.ASSISTANT)
                                 }
                             )
                         }
