@@ -53,7 +53,8 @@ interface BehavioralSessionDao {
         startOfDayTimestamp: Long,
         endOfDayTimestamp: Long
     ): Double
-
+    @Query("SELECT * FROM behavioral_sessions WHERE timestamp >= :since ORDER BY timestamp ASC")
+    fun observeSessionsSince(since: Long): Flow<List<BehavioralSession>>
     @Query(
         """
     SELECT COUNT(*)

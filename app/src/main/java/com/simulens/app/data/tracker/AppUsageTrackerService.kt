@@ -39,6 +39,15 @@ import java.time.ZoneId
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.concurrent.ConcurrentHashMap
+import com.simulens.app.domain.rules.intervention.withBsmas
+import com.simulens.app.domain.rules.intervention.InterventionConfig
+import com.simulens.app.domain.rules.intervention.InterventionType
+import com.simulens.app.domain.bsmas.BsmasScoring
+import com.simulens.app.ui.intervention.InterventionOverlay
+import com.simulens.app.ui.intervention.NudgePreview
+import com.simulens.app.ui.intervention.OverlayAction
+
+
 
 class AppUsageTrackerService : Service() {
 
@@ -48,9 +57,6 @@ class AppUsageTrackerService : Service() {
     private lateinit var monitoredAppsRepository: MonitoredAppsRepository
     private lateinit var database: SimulensDatabase
     private lateinit var notifier: InterventionNotifier
-
-    private val interventionEngine = InterventionEngine()
-    private val interventionPolicy = InterventionPolicy()
 
     private var cachedUserProfile = UserProfile()
 
@@ -64,6 +70,28 @@ class AppUsageTrackerService : Service() {
     @Volatile private var timetableEntries: List<TimetableEntry> = emptyList()
     @Volatile private var classesDate: LocalDate? = null
     @Volatile private var classesToday: List<ClassBlock> = emptyList()
+
+    @Volatile private var interventionEngine = InterventionEngine()
+
+    private val interventionPolicy by lazy {
+        InterventionPolicy(
+            prefs = applicationContext.getSharedPreferences("simulens_policy", Context.MODE_PRIVATE)
+        )
+    }
+
+    // Rules that take over the screen. Remove HIGH_SESSION_DEVIATION to make it notification-only.
+    private val overlayTypes = setOf(
+        InterventionType.SCHEDULE_CONFLICT,
+        InterventionType.SLEEP_WINDOW,
+        InterventionType.WIND_DOWN,
+        InterventionType.MORNING,
+        InterventionType.HIGH_SESSION_DEVIATION
+    )
+
+    private suspend fun refreshEngine() {
+        val bsmas = database.bsmasResultDao().getLatest()?.let { BsmasScoring.score(it.items()) }
+        interventionEngine = InterventionEngine(InterventionConfig().withBsmas(bsmas))
+    }
 
     private val labelCache = ConcurrentHashMap<String, String>()
 
@@ -112,6 +140,11 @@ class AppUsageTrackerService : Service() {
             database.timetableDao().getTimetableFlow().collect { entries ->
                 timetableEntries = entries
                 classesDate = null
+            }
+        }
+        serviceScope.launch {
+            database.bsmasResultDao().observeLatest().collect {
+                refreshEngine()
             }
         }
         serviceScope.launch {
@@ -349,6 +382,7 @@ class AppUsageTrackerService : Service() {
         }
     }
 
+
     private fun deliverIntervention(
         packageName: String,
         intervention: Intervention,
@@ -356,10 +390,9 @@ class AppUsageTrackerService : Service() {
         reopenIntervalMins: Float
     ) {
         Log.i("Simulens", "Triggering intervention: ${intervention.reason}")
-        notifier.show(intervention, packageName)
 
         serviceScope.launch {
-            try {
+            val logId: Long? = try {
                 database.interventionLogDao().insertLog(
                     InterventionLogEntity(
                         packageName = packageName,
@@ -370,6 +403,41 @@ class AppUsageTrackerService : Service() {
                 )
             } catch (e: Exception) {
                 Log.e("Simulens", "Failed to log intervention", e)
+                null
+            }
+
+            withContext(Dispatchers.Main) {
+                val nudge = NudgePreview(
+                    title = intervention.title,
+                    message = intervention.message,
+                    packageName = packageName,
+                    appName = labelFor(packageName),
+                    reason = intervention.reason
+                )
+                // respectSnooze = false: evaluateRealtimeSession already checked it.
+                val shown = intervention.type in overlayTypes &&
+                        InterventionOverlay.show(applicationContext, nudge, respectSnooze = false) { action ->
+                            onOverlayResult(action, logId, intervention.type)
+                        }
+                if (!shown) notifier.show(intervention, packageName, logId ?: -1L)
+            }
+        }
+    }
+
+    private fun onOverlayResult(action: OverlayAction, logId: Long?, type: InterventionType) {
+        when (action) {
+            OverlayAction.SNOOZE -> {
+                // The overlay already wrote the receiver's snooze; keep the policy in step.
+                interventionPolicy.snooze(15)
+            }
+            OverlayAction.TAKE_BREAK -> interventionPolicy.suppress(type, 30)
+            OverlayAction.DISMISS -> interventionPolicy.suppress(type, 20)
+            OverlayAction.LEARN_MORE -> Unit
+        }
+        if (logId != null) serviceScope.launch {
+            runCatching {
+                database.interventionLogDao()
+                    .setDismissed(logId, action != OverlayAction.TAKE_BREAK)
             }
         }
     }
@@ -580,6 +648,7 @@ class AppUsageTrackerService : Service() {
     }
 
     override fun onDestroy() {
+        closeCurrentSession(System.currentTimeMillis())
         super.onDestroy()
         serviceScope.cancel()
     }

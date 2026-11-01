@@ -40,7 +40,7 @@ fun ChatScreen(
         containerColor = colors.background,
         topBar = {
             TopAppBar(
-                title = { Text("Ask CogniLens", style = MaterialTheme.typography.titleLarge) },
+                title = { Text("Ask SimuLens", style = MaterialTheme.typography.titleLarge) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
