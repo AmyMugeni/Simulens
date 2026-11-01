@@ -94,7 +94,7 @@ class InterventionEngineTest {
         assertNull(eval(ctx(14, 0, sessionMins = 9.9), snap = warm))
         val r = eval(ctx(14, 0, sessionMins = 12.0), snap = warm)
         assertEquals(InterventionType.HIGH_SESSION_DEVIATION, r?.type)
-        assertTrue(r!!.message.contains("12 min"))
+        assertTrue(r!!.message.contains("12min"))
     }
 
     @Test fun floorStopsTinyMeansFromNagging() {

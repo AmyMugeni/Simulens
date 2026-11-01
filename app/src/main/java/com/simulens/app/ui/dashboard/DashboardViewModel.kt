@@ -12,6 +12,16 @@ import androidx.lifecycle.viewModelScope
 import com.simulens.app.data.export.RoomCsvExporter
 import com.simulens.app.data.local.SimulensDatabase
 import java.io.File
+import com.simulens.app.data.local.entity.BaselineAnchorEntity
+import com.simulens.app.data.tracker.AnchorManager
+import com.simulens.app.domain.bsmas.BsmasResult
+import com.simulens.app.domain.bsmas.BsmasScoring
+import com.simulens.app.domain.rules.intervention.AnchorCalculator
+import com.simulens.app.domain.rules.intervention.HistoricalSession
+import com.simulens.app.domain.rules.intervention.PeriodStats
+import com.simulens.app.domain.rules.intervention.WeekdayBaseline
+import com.simulens.app.domain.rules.intervention.WeekdayBaselineEngine
+import java.time.DayOfWeek
 import com.simulens.app.data.local.entity.BehavioralSession
 import com.simulens.app.data.local.entity.InterventionLogEntity
 import com.simulens.app.data.local.entity.TimetableEntry
@@ -134,7 +144,10 @@ data class DashboardState(
     /** Today's wellness score, risk level and the reasons behind it (see WellnessEngine). */
     val wellness: WellnessResult = WellnessResult(),
     /** The score from midnight to now, for the curve on the wellness card. */
-    val scoreTimeline: List<ScorePoint> = emptyList()
+    val scoreTimeline: List<ScorePoint> = emptyList(),
+    val baselines: Map<DayOfWeek, WeekdayBaseline> = emptyMap(),
+    val baselineSpanDays: Int = 0,
+    val recent: PeriodStats? = null
 )
 
 // ---------------------------------------------------------------------------------------------
@@ -154,6 +167,28 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private val _isExportingCsv = MutableStateFlow(false)
     val isExportingCsv: StateFlow<Boolean> = _isExportingCsv.asStateFlow()
 
+    private val baselineEngine = WeekdayBaselineEngine(weeks = 6)
+
+    val bsmasResult: StateFlow<BsmasResult?> = database.bsmasResultDao().observeLatest()
+        .map { row -> row?.let { BsmasScoring.score(it.items()) } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val anchor: StateFlow<BaselineAnchorEntity?> = database.baselineAnchorDao().observeActive()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    init {
+        viewModelScope.launch(Dispatchers.IO) {
+            AnchorManager.ensureFrozen(getApplication(), database, monitoredAppsRepository.monitoredApps.first())
+        }
+    }
+
+    fun resetAnchor() {
+        viewModelScope.launch(Dispatchers.IO) {
+            database.baselineAnchorDao().clearAll()
+            AnchorManager.reanchor(getApplication())
+        }
+    }
+
     fun exportCsv(context: Context, onResult: (String) -> Unit) {
         viewModelScope.launch {
             _isExportingCsv.value = true
@@ -166,7 +201,9 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 val files = RoomCsvExporter.export(
                     context = context,
                     sessionDao = behavioralSessionDao,
-                    coverageDao = dailyTrackingCoverageDao
+                    coverageDao = dailyTrackingCoverageDao,
+                    bsmasDao = database.bsmasResultDao(),
+                    userProfileRepository = userProfileRepository
                 )
                 val names = files.joinToString { it.name }
                 onResult("CSV exported successfully: $names")
@@ -182,17 +219,29 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             try {
                 val dir = File(context.filesDir, "ml_export")
-                val sessionFile = File(dir, "behavioral_sessions.csv")
-                if (sessionFile.exists()) {
-                    val uri: Uri = FileProvider.getUriForFile(
-                        context,
-                        "${context.packageName}.fileprovider",
-                        sessionFile
-                    )
-                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                        type = "text/csv"
-                        putExtra(Intent.EXTRA_STREAM, uri)
-                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                val csvFiles = dir.listFiles { _, name -> name.endsWith(".csv") }?.toList().orEmpty()
+                if (csvFiles.isNotEmpty()) {
+                    val uris = ArrayList<Uri>()
+                    csvFiles.forEach { file ->
+                        val uri = FileProvider.getUriForFile(
+                            context,
+                            "${context.packageName}.fileprovider",
+                            file
+                        )
+                        uris.add(uri)
+                    }
+                    val shareIntent = if (uris.size == 1) {
+                        Intent(Intent.ACTION_SEND).apply {
+                            type = "text/csv"
+                            putExtra(Intent.EXTRA_STREAM, uris.first())
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                    } else {
+                        Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+                            type = "text/csv"
+                            putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
                     }
                     val chooser = Intent.createChooser(shareIntent, "Share or Open CSV Export")
                     chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -503,6 +552,22 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         }
         val weeklyTotal = weekly.sumOf { it.totalMinutes }
 
+        // --- Weekday baselines (6 previous same-weekdays vs. this week) ---------------------------
+        val engineSince = today.minusWeeks(7).atStartOfDay(zone).toInstant().toEpochMilli()
+        val engineHistory = sessions
+            .filter { it.timestamp >= engineSince }
+            .map { HistoricalSession(endEpochMs = it.timestamp, durationMins = it.elapsedDuration) }
+
+        val baselines = baselineEngine.compute(
+            history = engineHistory,
+            trackingRecords = emptyList(),
+            today = today,
+            nowEpochMs = System.currentTimeMillis()
+        )
+        val recent = AnchorCalculator.periodStats(engineHistory, today.minusDays(7), today, zone)
+        val baselineSpanDays = earliestSessionDate
+            ?.let { ChronoUnit.DAYS.between(it, today).toInt() + 1 } ?: 0
+
         return DashboardState(
             selectedTimeRange = input.timeRange,
             todayMinutes = todayMinutes,
@@ -522,7 +587,10 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             daysTrackedCount = daysTrackedCount,
             monitoredCount = input.monitored.size,
             wellness = wellness,
-            scoreTimeline = scoreTimeline
+            scoreTimeline = scoreTimeline,
+            baselines = baselines,
+            baselineSpanDays = baselineSpanDays,
+            recent = recent
         )
     }
 

@@ -79,18 +79,19 @@ class InterventionEngine(private val config: InterventionConfig = InterventionCo
     // --- 5. Visit much longer than usual --------------------------------------------------------
 
     private fun sessionDeviation(s: SessionContext, b: UsageBaseline): Intervention? {
-        if (!hasHistory(b) || b.meanSessionMins <= 0.0) return null
+        val usual = b.medianSessionMinutes ?: b.meanSessionMins
+        if (!hasHistory(b) || usual <= 0.0) return null
 
-        val threshold = max(config.minSessionMinsForDeviation, b.meanSessionMins * config.sessionDeviationMultiplier)
+        val threshold = max(config.minSessionMinsForDeviation, usual * config.sessionDeviationMultiplier)
         if (s.sessionMins < threshold) return null
 
-        val times = String.format(Locale.US, "%.1f", s.sessionMins / b.meanSessionMins)
+        val times = String.format(Locale.US, "%.1f", s.sessionMins / usual)
         val durStr = formatDuration(s.sessionMins)
         return Intervention(
             type = InterventionType.HIGH_SESSION_DEVIATION,
             title = "This visit is running long",
             message = "You've been on ${s.appLabel} for $durStr, about ${times}x your usual visit.",
-            detail = "visit $durStr vs usual ${formatDuration(b.meanSessionMins)}"
+            detail = "visit $durStr vs usual ${formatDuration(usual)}"
         )
     }
 

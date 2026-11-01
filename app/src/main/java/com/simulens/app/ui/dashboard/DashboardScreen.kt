@@ -40,6 +40,8 @@ fun DashboardScreen(
     val userProfile by viewModel.userProfile.collectAsState()
     val status by viewModel.activityStatus.collectAsState()
     val state by viewModel.state.collectAsState()
+    val bsmasResult by viewModel.bsmasResult.collectAsState()
+    val anchor by viewModel.anchor.collectAsState()
 
     val analytics = remember(state) { buildAnalytics(state) }
 
@@ -388,21 +390,28 @@ fun DashboardScreen(
 
 
 
-                // Weekly Usage Trends Bar Chart
-                WeeklyUsageGraphCard(
-                    trends = analytics.weeklyTrends,
-                    totalWeeklyMins = analytics.totalWeeklyMinutes,
-                    avgDuration = analytics.avgSessionDurationMins
+                BaselineSection(
+                    baselines = state.baselines,
+                    spanDays = state.baselineSpanDays
                 )
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                // Time of Day Usage Breakdown
-                TimeOfDayInsightsCard(
-                    peakLabel = analytics.peakUsageTimeLabel,
-                    stats = analytics.timeOfDayStats
+                AnchorCard(
+                    anchor = anchor,
+                    recent = state.recent,
+                    bsmasNow = bsmasResult?.total,
+                    spanDays = state.baselineSpanDays,
+                    onReset = { viewModel.resetAnchor() }
                 )
 
+                Spacer(modifier = Modifier.height(16.dp))
+
+                BsmasBaselineCard(
+                    result = bsmasResult,
+                    baselines = state.baselines,
+                    onRetake = onNavigateToProfile
+                )
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // Tracked Applications Shortcut Card

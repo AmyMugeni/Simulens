@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import com.simulens.app.MainActivity
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.simulens.app.domain.rules.intervention.Intervention
@@ -37,7 +38,7 @@ class InterventionNotifier(private val context: Context) {
     }
 
     @SuppressLint("MissingPermission")
-    fun show(intervention: Intervention, sourcePackage: String) {
+    fun show(intervention: Intervention, sourcePackage: String, logId: Long = -1L) {
         val manager = NotificationManagerCompat.from(context)
         if (!manager.areNotificationsEnabled()) return
 
@@ -66,6 +67,7 @@ class InterventionNotifier(private val context: Context) {
             putExtra(InterventionActionReceiver.EXTRA_NOTIFICATION_ID, NOTIFICATION_ID)
             putExtra(InterventionExtras.SOURCE_PACKAGE, sourcePackage)
             putExtra(InterventionExtras.TITLE, intervention.title)
+            putExtra(InterventionActionReceiver.EXTRA_LOG_ID, logId)
             putExtra(InterventionExtras.MESSAGE, intervention.message)
         }
         val snoozePi = PendingIntent.getBroadcast(context, 102, snoozeIntent, flags)
@@ -75,22 +77,24 @@ class InterventionNotifier(private val context: Context) {
             action = InterventionActionReceiver.ACTION_DISMISS
             putExtra(InterventionActionReceiver.EXTRA_NOTIFICATION_ID, NOTIFICATION_ID)
             putExtra(InterventionExtras.SOURCE_PACKAGE, sourcePackage)
+            putExtra(InterventionActionReceiver.EXTRA_LOG_ID, logId)
             putExtra(InterventionExtras.TITLE, intervention.title)
             putExtra(InterventionExtras.MESSAGE, intervention.message)
         }
         val dismissPi = PendingIntent.getBroadcast(context, 103, dismissIntent, flags)
 
         // Action 4: "Learn More" (Link to RAG Chatbot)
-        val learnMoreIntent = Intent(context, InterventionActionReceiver::class.java).apply {
-            action = InterventionActionReceiver.ACTION_LEARN_MORE
-            putExtra(InterventionActionReceiver.EXTRA_NOTIFICATION_ID, NOTIFICATION_ID)
+        val learnMoreIntent = Intent(context, MainActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            putExtra(InterventionActionReceiver.EXTRA_OPEN_CHATBOT, true)
+            putExtra(InterventionActionReceiver.EXTRA_LOG_ID, logId)
             putExtra(InterventionExtras.TYPE, intervention.type.name)
             putExtra(InterventionExtras.TITLE, intervention.title)
             putExtra(InterventionExtras.MESSAGE, intervention.message)
             putExtra(InterventionExtras.EVIDENCE_TAG, intervention.type.evidenceTag)
             putExtra(InterventionExtras.SOURCE_PACKAGE, sourcePackage)
         }
-        val learnMorePi = PendingIntent.getBroadcast(context, 104, learnMoreIntent, flags)
+        val learnMorePi = PendingIntent.getActivity(context, 104, learnMoreIntent, flags)
 
         val fullText = "${intervention.message}\n\n💡 Tap 'Learn More' to discuss this focus rule with AI."
 

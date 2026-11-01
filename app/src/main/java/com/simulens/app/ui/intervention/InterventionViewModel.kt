@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.simulens.app.data.local.SimulensDatabase
 import com.simulens.app.data.local.entity.InterventionLogEntity
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -18,7 +19,6 @@ enum class InterventionFilter(val label: String) {
     ALL("All"),
     CIRCADIAN("Circadian"),
     SESSION_LIMIT("Session Limit"),
-    RELAPSE("Relapse"),
     SCHEDULE("Schedule")
 }
 
@@ -52,6 +52,10 @@ class InterventionViewModel(application: Application) : AndroidViewModel(applica
     private val _filter = MutableStateFlow(InterventionFilter.ALL)
     private val _previewNudge = MutableStateFlow<NudgePreview?>(null)
 
+    private fun isReal(l: InterventionLogEntity) =
+        !l.triggerReason.startsWith("SNOOZED", true) &&
+        !l.triggerReason.startsWith("DISMISSED", true)
+
     val uiState: StateFlow<InterventionUiState> = combine(
         interventionLogDao.getAllLogs(),
         _filter,
@@ -61,8 +65,8 @@ class InterventionViewModel(application: Application) : AndroidViewModel(applica
         val todayStart = LocalDate.now().atStartOfDay(zone).toInstant().toEpochMilli()
         val weekStart = LocalDate.now().minusDays(7).atStartOfDay(zone).toInstant().toEpochMilli()
 
-        val todayLogs = logs.filter { it.timestamp >= todayStart }
-        val weekLogs = logs.filter { it.timestamp >= weekStart }
+        val todayLogs = logs.filter { it.timestamp >= todayStart && isReal(it) }
+        val weekLogs = logs.filter { it.timestamp >= weekStart && isReal(it) }
 
         val filtered = when (filter) {
             InterventionFilter.ALL -> logs
@@ -73,14 +77,8 @@ class InterventionViewModel(application: Application) : AndroidViewModel(applica
                 it.triggerReason.contains("MORNING", ignoreCase = true)
             }
             InterventionFilter.SESSION_LIMIT -> logs.filter {
-                it.triggerReason.contains("HIGH_SESSION", ignoreCase = true) ||
-                it.triggerReason.contains("HIGH_DAILY", ignoreCase = true) ||
-                it.triggerReason.contains("visit", ignoreCase = true) ||
-                it.sessionDurationMins >= 1f
-            }
-            InterventionFilter.RELAPSE -> logs.filter {
-                it.triggerReason.contains("Relapse", ignoreCase = true) ||
-                it.reopenIntervalMins < 5f
+                it.triggerReason.contains("HIGH_SESSION", true) ||
+                it.triggerReason.contains("HIGH_DAILY", true)
             }
             InterventionFilter.SCHEDULE -> logs.filter {
                 it.triggerReason.contains("SCHEDULE", ignoreCase = true) ||
@@ -131,9 +129,13 @@ class InterventionViewModel(application: Application) : AndroidViewModel(applica
 
     fun simulateIntervention(
         reason: String = "HIGH_SESSION_DEVIATION: Visit ran 15 min vs usual 4 min baseline.",
-        packageName: String = "com.instagram.android"
+        packageName: String = "com.instagram.android",
+        delaySeconds: Int = 0
     ) {
         viewModelScope.launch(Dispatchers.IO) {
+            if (delaySeconds > 0) {
+                delay(delaySeconds * 1000L)
+            }
             val appName = getAppName(packageName)
             val log = InterventionLogEntity(
                 packageName = packageName,

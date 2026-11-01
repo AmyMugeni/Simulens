@@ -22,6 +22,14 @@ class InterventionActionReceiver : BroadcastReceiver() {
         const val EXTRA_NOTIFICATION_ID = "notification_id"
         const val EXTRA_OPEN_CHATBOT = "open_chatbot"
 
+        const val EXTRA_LOG_ID = "log_id"
+
+        fun snooze(context: Context, mins: Long = 15L) {
+            context.getSharedPreferences(SNOOZE_PREFS, Context.MODE_PRIVATE).edit()
+                .putLong(KEY_SNOOZED_UNTIL, System.currentTimeMillis() + mins * 60_000L)
+                .apply()
+        }
+
         private const val SNOOZE_PREFS = "simulens_snooze_prefs"
         private const val KEY_SNOOZED_UNTIL = "snoozed_until_ms"
 
@@ -53,37 +61,38 @@ class InterventionActionReceiver : BroadcastReceiver() {
 
                 when (action) {
                     ACTION_SNOOZE -> {
-                        val snoozeDurationMins = 15L
-                        val snoozedUntil = System.currentTimeMillis() + (snoozeDurationMins * 60_000L)
-                        context.getSharedPreferences(SNOOZE_PREFS, Context.MODE_PRIVATE)
-                            .edit()
-                            .putLong(KEY_SNOOZED_UNTIL, snoozedUntil)
-                            .apply()
-
-                        Log.d("Simulens", "Interventions snoozed for 15 minutes until $snoozedUntil")
-
-                        dao.insertLog(
-                            InterventionLogEntity(
-                                packageName = sourcePackage,
-                                triggerReason = "SNOOZED (15m): $title - $message",
-                                sessionDurationMins = 0f,
-                                reopenIntervalMins = 0f,
-                                wasDismissed = true
+                        snooze(context)
+                        val logId = intent.getLongExtra(EXTRA_LOG_ID, -1L)
+                        if (logId > 0) {
+                            dao.setDismissed(logId, true)
+                        } else {
+                            dao.insertLog(
+                                InterventionLogEntity(
+                                    packageName = sourcePackage,
+                                    triggerReason = "SNOOZED (15m): $title - $message",
+                                    sessionDurationMins = 0f,
+                                    reopenIntervalMins = 0f,
+                                    wasDismissed = true
+                                )
                             )
-                        )
+                        }
                     }
 
                     ACTION_DISMISS -> {
-                        Log.d("Simulens", "Intervention notification dismissed by user")
-                        dao.insertLog(
-                            InterventionLogEntity(
-                                packageName = sourcePackage,
-                                triggerReason = "DISMISSED: $title - $message",
-                                sessionDurationMins = 0f,
-                                reopenIntervalMins = 0f,
-                                wasDismissed = true
+                        val logId = intent.getLongExtra(EXTRA_LOG_ID, -1L)
+                        if (logId > 0) {
+                            dao.setDismissed(logId, true)
+                        } else {
+                            dao.insertLog(
+                                InterventionLogEntity(
+                                    packageName = sourcePackage,
+                                    triggerReason = "DISMISSED: $title - $message",
+                                    sessionDurationMins = 0f,
+                                    reopenIntervalMins = 0f,
+                                    wasDismissed = true
+                                )
                             )
-                        )
+                        }
                     }
 
                     ACTION_LEARN_MORE -> {

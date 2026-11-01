@@ -10,7 +10,10 @@ import kotlinx.coroutines.flow.Flow
 interface InterventionLogDao {
 
     @Insert
-    suspend fun insertLog(log: InterventionLogEntity)
+    suspend fun insertLog(log: InterventionLogEntity): Long
+
+    @Query("UPDATE intervention_logs SET wasDismissed = :dismissed WHERE id = :id")
+    suspend fun setDismissed(id: Long, dismissed: Boolean)
 
     @Query("SELECT * FROM intervention_logs ORDER BY timestamp DESC")
     fun getAllLogs(): Flow<List<InterventionLogEntity>>
