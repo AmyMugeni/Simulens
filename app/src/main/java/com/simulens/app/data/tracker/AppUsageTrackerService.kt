@@ -13,6 +13,7 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.simulens.app.data.local.SimulensDatabase
 import com.simulens.app.data.local.entity.BehavioralSession
 import com.simulens.app.data.local.entity.InterventionLogEntity
@@ -49,6 +50,10 @@ import com.simulens.app.ui.intervention.OverlayAction
 
 
 
+import com.simulens.app.domain.rules.intervention.RepeatFacts
+import com.simulens.app.domain.rules.intervention.SessionFlags
+import com.simulens.app.domain.rules.intervention.buildRepeatFacts
+
 class AppUsageTrackerService : Service() {
 
     private val serviceScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
@@ -65,6 +70,7 @@ class AppUsageTrackerService : Service() {
 
     // Baseline for "high deviation" rules, refreshed every minute and after each saved session.
     @Volatile private var usageSnapshot: UsageSnapshot = UsageSnapshot.EMPTY
+    @Volatile private var repeatFacts: Map<String, RepeatFacts> = emptyMap()
 
     // Timetable -> today's class blocks (recomputed when the date or the timetable changes).
     @Volatile private var timetableEntries: List<TimetableEntry> = emptyList()
@@ -183,6 +189,15 @@ class AppUsageTrackerService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d("Simulens", "Service: onStartCommand")
         return START_STICKY
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        Log.i("SimulensTracker", "Task swiped away. Ensuring service stays active...")
+        if (PermissionUtils.hasUsageStatsPermission(this)) {
+            val serviceIntent = Intent(applicationContext, AppUsageTrackerService::class.java)
+            ContextCompat.startForegroundService(applicationContext, serviceIntent)
+        }
     }
 
     private fun startPollingLoop() {
@@ -364,7 +379,8 @@ class AppUsageTrackerService : Service() {
                 appLabel = labelFor(packageName),
                 sessionMins = durationMins.toDouble(),
                 todayMinutes = snapshot.todayCompletedMins + durationMins,
-                now = now
+                now = now,
+                facts = repeatFacts[packageName] ?: RepeatFacts()
             )
 
             val intervention = interventionEngine.evaluate(
@@ -480,8 +496,31 @@ class AppUsageTrackerService : Service() {
                 now = now,
                 zone = zone
             )
+            refreshRepeatFacts()
         } catch (e: Exception) {
             Log.e("Simulens", "Failed to refresh usage snapshot", e)
+        }
+    }
+
+    private suspend fun refreshRepeatFacts() {
+        try {
+            val now = System.currentTimeMillis()
+            val rows = database.behavioralSessionDao().getSessionsSince(now - 7L * 24 * 60 * 60 * 1000)
+            repeatFacts = rows.groupBy { it.packageName }.mapValues { (_, list) ->
+                buildRepeatFacts(
+                    list.map {
+                        SessionFlags(
+                            it.timestamp,
+                            it.scheduleConflict == 1,
+                            it.bedtimeSocialMedia == 1,
+                            it.morningSocialMedia == 1
+                        )
+                    },
+                    now, ZoneId.systemDefault()
+                )
+            }
+        } catch (e: Exception) {
+            Log.e("Simulens", "Failed to refresh repeat facts", e)
         }
     }
 
@@ -615,7 +654,7 @@ class AppUsageTrackerService : Service() {
 
     private suspend fun syncSystemUsageStatsIfEmpty() {
         try {
-            HistoricalUsageSyncer.sync(applicationContext, database, lookbackDays = 14)
+            HistoricalUsageSyncer.sync(applicationContext, database, lookbackDays = 30)
             refreshSnapshot()
         } catch (e: Exception) {
             Log.e("Simulens", "Error syncing system usage stats", e)

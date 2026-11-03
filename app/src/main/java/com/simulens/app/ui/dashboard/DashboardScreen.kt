@@ -42,6 +42,7 @@ fun DashboardScreen(
     val state by viewModel.state.collectAsState()
     val bsmasResult by viewModel.bsmasResult.collectAsState()
     val anchor by viewModel.anchor.collectAsState()
+    val riskPrediction by viewModel.riskPrediction.collectAsState()
 
     val analytics = remember(state) { buildAnalytics(state) }
 
@@ -412,6 +413,15 @@ fun DashboardScreen(
                     baselines = state.baselines,
                     onRetake = onNavigateToProfile
                 )
+
+                if (riskPrediction != null) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    BehavioralRiskForecastCard(
+                        prediction = riskPrediction,
+                        onNavigateToRag = onNavigateToRag
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // Tracked Applications Shortcut Card
@@ -968,4 +978,112 @@ private fun buildAnalytics(s: DashboardState): DashboardAnalytics {
         peakUsageTimeLabel = peakLabel,
         timeOfDayStats = todStats
     )
+}
+
+@Composable
+fun BehavioralRiskForecastCard(
+    prediction: com.simulens.app.RiskPrediction?,
+    onNavigateToRag: () -> Unit
+) {
+    val colors = MaterialTheme.colorScheme
+    if (prediction == null) return
+
+    val isElevated = prediction.riskLevel == "ELEVATED"
+    val pct = kotlin.math.round(prediction.probability * 100).toInt()
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isElevated) colors.errorContainer.copy(alpha = 0.3f) else colors.surfaceContainerLow
+        ),
+        border = BorderStroke(1.dp, if (isElevated) colors.error.copy(alpha = 0.5f) else colors.outlineVariant)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = if (isElevated) Icons.Default.Warning else Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = if (isElevated) colors.error else colors.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            text = "Behavioral Risk Forecast",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.onSurface
+                        )
+                        Text(
+                            text = "Logistic Regression Model",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = colors.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                PillBadge(
+                    text = if (isElevated) "ELEVATED ($pct%)" else "NORMAL ($pct%)",
+                    containerColor = if (isElevated) colors.errorContainer else colors.primaryContainer,
+                    contentColor = if (isElevated) colors.onErrorContainer else colors.onPrimaryContainer
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = if (isElevated) {
+                    "Your 28-day usage pattern shows elevated risk factors based on feature classification (e.g. session gaps, late-night visits, or class overlaps). Here are recommended steps to protect your focus:"
+                } else {
+                    "Your behavioral metrics indicate a healthy balance! Your usage parameters and session gaps are well within safe thresholds."
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onSurfaceVariant
+            )
+
+            if (isElevated) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(colors.surfaceContainer, RoundedCornerShape(14.dp))
+                        .padding(12.dp)
+                ) {
+                    Text(
+                        text = "• Set a 30-min wind-down window before target bedtime",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = colors.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "• Avoid opening social apps during scheduled class blocks",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = colors.onSurface
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedButton(
+                    onClick = onNavigateToRag,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.Chat, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Get Personalised Guidance from AI Assistant", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
 }

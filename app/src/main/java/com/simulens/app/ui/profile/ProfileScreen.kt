@@ -32,6 +32,8 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.Scope
 import com.simulens.app.BuildConfig
+import com.simulens.app.domain.bsmas.BsmasBand
+import com.simulens.app.domain.bsmas.BsmasScoring
 import com.simulens.app.ui.components.GradientButton
 import com.simulens.app.ui.components.PillBadge
 import com.simulens.app.ui.components.SectionHeader
@@ -469,8 +471,20 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // Section 5: Assessment Baseline
-            SectionHeader(title = "Assessment Baseline")
+            // Section 5: Assessment Baseline (BSMAS)
+            val bsmasAnswers by viewModel.bsmasAnswers.collectAsState()
+            val bsmasHistory by viewModel.bsmasHistory.collectAsState()
+            var isRetakeExpanded by remember { mutableStateOf(false) }
+            var expandedHistoryId by remember { mutableStateOf<Long?>(null) }
+
+            val currentResult = BsmasScoring.score(bsmasAnswers.toList())
+            val currentBand = currentResult?.band ?: when {
+                userProfile.bsmasScore <= 12 -> BsmasBand.LOWER
+                userProfile.bsmasScore <= 18 -> BsmasBand.MODERATE
+                else -> BsmasBand.ELEVATED
+            }
+
+            SectionHeader(title = "Assessment Baseline (BSMAS)")
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -479,7 +493,293 @@ fun ProfileScreen(
                 border = BorderStroke(1.dp, colors.outlineVariant)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
-                    ProfileReadOnlyItem("BSMAS Baseline Score", userProfile.bsmasScore.toString())
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "BSMAS Risk Score",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Bergen Social Media Addiction Scale baseline assessment",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = colors.onSurfaceVariant
+                            )
+                        }
+
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                text = "${userProfile.bsmasScore} / 30",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            PillBadge(
+                                text = currentBand.name,
+                                containerColor = if (currentBand == BsmasBand.ELEVATED) colors.errorContainer else colors.primaryContainer,
+                                contentColor = if (currentBand == BsmasBand.ELEVATED) colors.onErrorContainer else colors.onPrimaryContainer
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Button(
+                        onClick = { isRetakeExpanded = !isRetakeExpanded },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isRetakeExpanded) colors.secondaryContainer else colors.primary
+                        )
+                    ) {
+                        Icon(
+                            imageVector = if (isRetakeExpanded) Icons.Default.ExpandLess else Icons.Default.EditNote,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = if (isRetakeExpanded) colors.onSecondaryContainer else colors.onPrimary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (isRetakeExpanded) "Hide Questionnaire Form" else "Retake Questionnaire Now",
+                            fontWeight = FontWeight.Bold,
+                            color = if (isRetakeExpanded) colors.onSecondaryContainer else colors.onPrimary
+                        )
+                    }
+
+                    if (isRetakeExpanded) {
+                        Spacer(modifier = Modifier.height(20.dp))
+                        HorizontalDivider(color = colors.outlineVariant)
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Text(
+                            text = "Answer all 6 questions (1 = Very Rarely, 5 = Very Often):",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.primary
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        OnboardingViewModel.BSMAS_QUESTIONS.forEachIndexed { index, question ->
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 6.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(containerColor = colors.surfaceContainer),
+                                border = BorderStroke(1.dp, colors.outlineVariant)
+                            ) {
+                                Column(modifier = Modifier.padding(14.dp)) {
+                                    Text(
+                                        text = "${index + 1}. $question",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = colors.onSurface
+                                    )
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        (1..5).forEach { value ->
+                                            FilterChip(
+                                                selected = bsmasAnswers.getOrElse(index) { 0 } == value,
+                                                onClick = { viewModel.updateBsmasAnswer(index, value) },
+                                                label = {
+                                                    Text(
+                                                        text = value.toString(),
+                                                        fontWeight = if (bsmasAnswers.getOrElse(index) { 0 } == value) FontWeight.Bold else FontWeight.Normal
+                                                    )
+                                                },
+                                                colors = FilterChipDefaults.filterChipColors(
+                                                    selectedContainerColor = colors.primary,
+                                                    selectedLabelColor = colors.onPrimary
+                                                )
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        val calculatedScore = bsmasAnswers.sum()
+                        val calculatedResult = BsmasScoring.score(bsmasAnswers.toList())
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(colors.surfaceContainerHigh, RoundedCornerShape(14.dp))
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = "Calculated Total: $calculatedScore / 30",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.onSurface
+                                )
+                                Text(
+                                    text = "Risk Band: ${calculatedResult?.band?.name ?: "Incomplete"}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = colors.onSurfaceVariant
+                                )
+                            }
+
+                            Button(
+                                onClick = {
+                                    if (bsmasAnswers.all { it in 1..5 }) {
+                                        viewModel.recordNewBsmasAssessment(bsmasAnswers) {
+                                            scope.launch {
+                                                snackbarHostState.showSnackbar("New BSMAS assessment recorded & saved!")
+                                            }
+                                        }
+                                        isRetakeExpanded = false
+                                    } else {
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar("Please answer all 6 questions before recording.")
+                                        }
+                                    }
+                                },
+                                shape = RoundedCornerShape(12.dp),
+                                enabled = bsmasAnswers.all { it in 1..5 }
+                            ) {
+                                Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("Record Assessment", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (bsmasHistory.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
+                    border = BorderStroke(1.dp, colors.outlineVariant)
+                ) {
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.History,
+                                    contentDescription = null,
+                                    tint = colors.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Assessment History (${bsmasHistory.size})",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.onSurface
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        bsmasHistory.forEach { historyEntity ->
+                            val scoreObj = BsmasScoring.score(historyEntity.items())
+                            val isExpanded = expandedHistoryId == historyEntity.id
+
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
+                                    .background(colors.surfaceContainer, RoundedCornerShape(14.dp))
+                                    .padding(14.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = formatEpochMs(historyEntity.takenAtEpochMs),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = colors.onSurface
+                                        )
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = "Score: ${historyEntity.total} / 30",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = colors.onSurfaceVariant
+                                        )
+                                    }
+
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        val band = scoreObj?.band ?: BsmasBand.MODERATE
+                                        PillBadge(
+                                            text = band.name,
+                                            containerColor = if (band == BsmasBand.ELEVATED) colors.errorContainer else colors.primaryContainer,
+                                            contentColor = if (band == BsmasBand.ELEVATED) colors.onErrorContainer else colors.onPrimaryContainer
+                                        )
+                                        IconButton(
+                                            onClick = {
+                                                expandedHistoryId = if (isExpanded) null else historyEntity.id
+                                            }
+                                        ) {
+                                            Icon(
+                                                imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                                contentDescription = "Details",
+                                                tint = colors.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+
+                                if (isExpanded) {
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                    HorizontalDivider(color = colors.outlineVariant)
+                                    Spacer(modifier = Modifier.height(10.dp))
+
+                                    OnboardingViewModel.BSMAS_QUESTIONS.forEachIndexed { idx, qText ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 3.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(
+                                                text = "Q${idx + 1}: ${qText.take(35)}...",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = colors.onSurfaceVariant,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            Text(
+                                                text = "${historyEntity.items().getOrElse(idx) { 0 }} / 5",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = colors.onSurface
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -616,4 +916,12 @@ private fun ProfileReadOnlyItem(label: String, value: String) {
             )
         }
     }
+}
+
+private fun formatEpochMs(epochMs: Long): String {
+    return runCatching {
+        val instant = java.time.Instant.ofEpochMilli(epochMs)
+        val zone = java.time.ZoneId.systemDefault()
+        instant.atZone(zone).format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy • HH:mm"))
+    }.getOrDefault("Date unavailable")
 }

@@ -126,9 +126,15 @@ fun ProfileSetupHubScreen(
         }
     }
 
-    val progress = viewModel.calculateCompletionPercentage()
+    val progress by viewModel.completionPercentage.collectAsState()
     val isComplete = progress >= 1.0f
     val colors = MaterialTheme.colorScheme
+
+    LaunchedEffect(calendarState.events) {
+        if (calendarState.events.isNotEmpty()) {
+            viewModel.updateTimetableStatus(true)
+        }
+    }
 
     val bsmasQuestions = listOf(
         "You spend a lot of time thinking about social media or planning how to use it.",

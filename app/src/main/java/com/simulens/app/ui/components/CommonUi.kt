@@ -119,7 +119,9 @@ fun PillBadge(
                 text = text,
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
-                color = contentColor
+                color = contentColor,
+                maxLines = 1,
+                softWrap = false
             )
         }
     }

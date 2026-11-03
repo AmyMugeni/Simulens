@@ -168,12 +168,28 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     val isExportingCsv: StateFlow<Boolean> = _isExportingCsv.asStateFlow()
 
     private val baselineEngine = WeekdayBaselineEngine(weeks = 6)
+    private val predictor by lazy { com.simulens.app.KotlinPredictor(getApplication()) }
 
     val bsmasResult: StateFlow<BsmasResult?> = database.bsmasResultDao().observeLatest()
         .map { row -> row?.let { BsmasScoring.score(it.items()) } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val anchor: StateFlow<BaselineAnchorEntity?> = database.baselineAnchorDao().observeActive()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val riskPrediction: StateFlow<com.simulens.app.RiskPrediction?> = behavioralSessionDao.getAllSessions()
+        .map { sessions ->
+            if (sessions.isEmpty()) null
+            else {
+                val nowMs = System.currentTimeMillis()
+                val recent28Days = sessions.filter { it.timestamp >= nowMs - 28L * 24 * 60 * 60 * 1000 }
+                if (recent28Days.isEmpty()) null
+                else {
+                    val features = com.simulens.app.ml.BehavioralFeatureExtractor.extractFeatures(recent28Days, nowMs)
+                    predictor.predict(features)
+                }
+            }
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     init {
@@ -196,7 +212,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 com.simulens.app.data.tracker.HistoricalUsageSyncer.sync(
                     context = context.applicationContext,
                     database = database,
-                    lookbackDays = 14
+                    lookbackDays = 30
                 )
                 val files = RoomCsvExporter.export(
                     context = context,
