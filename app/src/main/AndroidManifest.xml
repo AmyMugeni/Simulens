@@ -20,6 +20,7 @@
     <!-- Foreground service permissions for background tracking (Android 14+) -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <!-- Queries declaration permitting package visibility for launcher apps on Android 11+ -->
     <queries>
@@ -56,6 +57,18 @@
             android:name=".data.tracker.InterventionActionReceiver"
             android:enabled="true"
             android:exported="false" />
+
+        <!-- Auto-restart tracking service on phone reboot -->
+        <receiver
+            android:name=".data.tracker.BootReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
 
         <activity
             android:name=".MainActivity"

@@ -143,6 +143,7 @@ object InterventionOverlay {
             Intent(context, MainActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 putExtra(InterventionActionReceiver.EXTRA_OPEN_CHATBOT, true)
+                putExtra(InterventionExtras.TYPE, nudge.reason.substringBefore(":"))
                 putExtra(InterventionExtras.TITLE, nudge.title)
                 putExtra(InterventionExtras.MESSAGE, nudge.message)
                 putExtra(InterventionExtras.SOURCE_PACKAGE, nudge.packageName)

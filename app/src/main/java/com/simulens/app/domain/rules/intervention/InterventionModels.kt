@@ -42,7 +42,8 @@ data class SessionContext(
     val sessionMins: Double,
     /** Today's total INCLUDING the current session. */
     val todayMinutes: Double,
-    val now: LocalDateTime
+    val now: LocalDateTime,
+    val facts: RepeatFacts = RepeatFacts()
 )
 
 data class InterventionConfig(
@@ -66,5 +67,6 @@ data class InterventionConfig(
         InterventionType.HIGH_SESSION_DEVIATION to 15L,
         InterventionType.HIGH_DAILY_DEVIATION to 45L
     ),
-    val maxPerDay: Int = 12
+    val maxPerDay: Int = 12,
+    val strictModeAvailable: Boolean = false
 )

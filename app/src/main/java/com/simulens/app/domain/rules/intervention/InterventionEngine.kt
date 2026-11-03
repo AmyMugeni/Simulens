@@ -42,7 +42,7 @@ class InterventionEngine(private val config: InterventionConfig = InterventionCo
         return Intervention(
             type = InterventionType.SCHEDULE_CONFLICT,
             title = "You're in class",
-            message = "${current.subject} runs until $until. ${s.appLabel} can wait.",
+            message = NudgeCopy.classMessage(current.subject, until, s.appLabel, s.facts, config.strictModeAvailable),
             detail = "${current.subject} until $until"
         )
     }
@@ -57,19 +57,19 @@ class InterventionEngine(private val config: InterventionConfig = InterventionCo
             isInWindow(time, sleep.sleep, sleep.wake) -> Intervention(
                 type = InterventionType.SLEEP_WINDOW,
                 title = "It's sleep time",
-                message = "You planned to be asleep until ${fmt(sleep.wake)}. Put ${s.appLabel} down and rest.",
+                message = NudgeCopy.sleepMessage(fmt(sleep.wake), s.appLabel, s.facts),
                 detail = "sleep window ${fmt(sleep.sleep)}-${fmt(sleep.wake)}"
             )
             isInWindow(time, windDownStart, sleep.sleep) -> Intervention(
                 type = InterventionType.WIND_DOWN,
                 title = "Time to wind down",
-                message = "Your sleep window starts at ${fmt(sleep.sleep)}. A feed now makes it harder to switch off.",
+                message = NudgeCopy.windDownMessage(fmt(sleep.sleep), s.appLabel, s.facts),
                 detail = "wind-down before ${fmt(sleep.sleep)}"
             )
             isInWindow(time, sleep.wake, morningEnd) -> Intervention(
                 type = InterventionType.MORNING,
                 title = "Ease into your day",
-                message = "You woke at ${fmt(sleep.wake)}. The first half hour is easier without ${s.appLabel}.",
+                message = NudgeCopy.morningMessage(fmt(sleep.wake), s.appLabel, s.facts),
                 detail = "first ${sleep.morningMinutes} min after waking"
             )
             else -> null
