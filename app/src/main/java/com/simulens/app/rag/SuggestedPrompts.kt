@@ -18,6 +18,7 @@ enum class InterventionTopic(
         headline = "Questions about social media and you",
         contextLine = "",
         prompts = listOf(
+            "Draft an evidence-backed action plan tailored for my usage",
             "How does social media affect my sleep?",
             "Why is it so hard to stop scrolling?",
             "Does social media hurt my concentration when studying?",
