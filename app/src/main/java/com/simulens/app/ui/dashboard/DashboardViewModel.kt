@@ -168,7 +168,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     val isExportingCsv: StateFlow<Boolean> = _isExportingCsv.asStateFlow()
 
     private val baselineEngine = WeekdayBaselineEngine(weeks = 6)
-    private val predictor by lazy { com.simulens.app.KotlinPredictor(getApplication()) }
+    private val predictor by lazy { com.simulens.app.ml.RandomForestPredictor(getApplication()) }
 
     val bsmasResult: StateFlow<BsmasResult?> = database.bsmasResultDao().observeLatest()
         .map { row -> row?.let { BsmasScoring.score(it.items()) } }
@@ -177,7 +177,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     val anchor: StateFlow<BaselineAnchorEntity?> = database.baselineAnchorDao().observeActive()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    val riskPrediction: StateFlow<com.simulens.app.RiskPrediction?> = behavioralSessionDao.getAllSessions()
+    val riskPrediction: StateFlow<com.simulens.app.ml.RiskPrediction?> = behavioralSessionDao.getAllSessions()
         .map { sessions ->
             if (sessions.isEmpty()) null
             else {

@@ -10,7 +10,7 @@ object BehavioralFeatureExtractor {
 
     /**
      * Extracts the 29 behavioural features from a list of 28-day [BehavioralSession] records
-     * matching the exact schema expected by KotlinPredictor and risk_model_parameters.json.
+     * matching the exact schema expected by RandomForestPredictor and simulens_rf_champion.onnx.
      */
     fun extractFeatures(
         sessions: List<BehavioralSession>,

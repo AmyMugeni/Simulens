@@ -982,7 +982,7 @@ private fun buildAnalytics(s: DashboardState): DashboardAnalytics {
 
 @Composable
 fun BehavioralRiskForecastCard(
-    prediction: com.simulens.app.RiskPrediction?,
+    prediction: com.simulens.app.ml.RiskPrediction?,
     onNavigateToRag: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
@@ -1024,7 +1024,7 @@ fun BehavioralRiskForecastCard(
                             color = colors.onSurface
                         )
                         Text(
-                            text = "Logistic Regression Model",
+                            text = "Random Forest ONNX Model",
                             style = MaterialTheme.typography.labelSmall,
                             color = colors.onSurfaceVariant
                         )
