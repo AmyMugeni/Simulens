@@ -62,8 +62,6 @@ fun BaselineSection(baselines: Map<DayOfWeek, WeekdayBaseline>, spanDays: Int) {
     val chartMetric = viewMetric ?: BaselineMetric.TOTAL_TIME
 
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        BaselineHeaderCard(baselines, spanDays)
-
         // Day chips
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             DayOfWeek.entries.forEach { d ->

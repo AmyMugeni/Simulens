@@ -36,7 +36,10 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
     val isBsmasCompleted: StateFlow<Boolean> = _isBsmasCompleted.asStateFlow()
 
     val bsmasHistory: StateFlow<List<BsmasResultEntity>> = bsmasDao.observeAll()
-        .map { list -> list.sortedByDescending { it.takenAtEpochMs } }
+        .map { list ->
+            list.distinctBy { Pair(it.takenAtEpochMs / 60_000, it.total) }
+                .sortedByDescending { it.takenAtEpochMs }
+        }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -104,9 +107,6 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
         _isBsmasCompleted.value = done
         if (done) {
             _userProfile.value = _userProfile.value.copy(bsmasScore = current.sum())
-            viewModelScope.launch {
-                persistBsmasIfNew()
-            }
         }
     }
 

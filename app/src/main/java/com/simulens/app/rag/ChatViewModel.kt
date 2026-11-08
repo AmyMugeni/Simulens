@@ -6,8 +6,11 @@ import androidx.lifecycle.viewModelScope
 import com.simulens.app.data.chat.ChatMessage
 import com.simulens.app.data.chat.ChatRepository
 import com.simulens.app.data.local.SimulensDatabase
+import com.simulens.app.data.repositories.UserProfileRepository
+import com.simulens.app.domain.bsmas.BsmasScoring
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -16,7 +19,9 @@ data class ChatUiState(
     val sending: Boolean = false,
     val error: String? = null,
     val topic: InterventionTopic = InterventionTopic.GENERAL,
-    val askedPrompts: Set<String> = emptySet()
+    val askedPrompts: Set<String> = emptySet(),
+    val isPersonalized: Boolean = true,
+    val personalizedSummary: String = ""
 ) {
     /** Suggestions for the current topic that the user has not asked yet. */
     val remainingPrompts: List<String>
@@ -39,6 +44,7 @@ class ChatViewModel @JvmOverloads constructor(
     init {
         viewModelScope.launch {
             repository.pruneOldMessages()
+            refreshPersonalizedSummary()
             repository.messages.collect { msgs ->
                 val asked = msgs.filter { it.fromUser }.map { it.text }.toSet()
                 _state.update {
@@ -49,6 +55,49 @@ class ChatViewModel @JvmOverloads constructor(
                 }
             }
         }
+    }
+
+    fun togglePersonalization() {
+        _state.update { it.copy(isPersonalized = !it.isPersonalized) }
+    }
+
+    private suspend fun refreshPersonalizedSummary() {
+        val summary = buildPersonalizedContext()
+        _state.update { it.copy(personalizedSummary = summary) }
+    }
+
+    private suspend fun buildPersonalizedContext(): String {
+        return runCatching {
+            val db = SimulensDatabase.getDatabase(getApplication())
+            val bsmas = db.bsmasResultDao().getLatest()
+            val logs = db.interventionLogDao().getAllLogs().firstOrNull() ?: emptyList()
+            val profile = UserProfileRepository(getApplication()).userProfileFlow.firstOrNull()
+
+            val parts = mutableListOf<String>()
+
+            if (bsmas != null) {
+                val scoreObj = BsmasScoring.score(bsmas.items())
+                val bandName = scoreObj?.band?.name ?: "MODERATE"
+                parts.add("BSMAS score: ${bsmas.total}/30 ($bandName risk).")
+            }
+
+            if (logs.isNotEmpty()) {
+                val topTriggers = logs.groupBy { it.triggerReason }
+                    .mapValues { it.value.size }
+                    .entries.sortedByDescending { it.value }
+                    .take(2)
+                    .joinToString(", ") { "${it.key} (${it.value}x)" }
+                if (topTriggers.isNotBlank()) {
+                    parts.add("Top struggles: $topTriggers.")
+                }
+            }
+
+            if (profile != null && profile.isSleepConfigured) {
+                parts.add("Schedule: Wake ${profile.wakeUpTime}, Bed ${profile.sleepTime}.")
+            }
+
+            parts.joinToString(" ").take(500)
+        }.getOrDefault("")
     }
 
     /** Called when the chat opens. A new intervention swaps the suggestions; the conversation stays. */
@@ -67,11 +116,6 @@ class ChatViewModel @JvmOverloads constructor(
             .filter { it.mode == Mode.ANSWER }
             .map { Turn(if (it.fromUser) "user" else "assistant", it.text) }
 
-        val context = listOf(contextProvider(), _state.value.topic.contextLine)
-            .filter { it.isNotBlank() }
-            .joinToString(" ")
-            .take(600) // the server rejects longer context
-
         _state.update {
             it.copy(
                 askedPrompts = it.askedPrompts + message,
@@ -82,6 +126,15 @@ class ChatViewModel @JvmOverloads constructor(
 
         viewModelScope.launch {
             repository.add(userMsg)
+            val personalizedContext = if (_state.value.isPersonalized) {
+                _state.value.personalizedSummary.ifBlank { buildPersonalizedContext() }
+            } else ""
+
+            val context = listOf(personalizedContext, contextProvider(), _state.value.topic.contextLine)
+                .filter { it.isNotBlank() }
+                .joinToString(" ")
+                .take(600)
+
             runCatching { client.ask(message, history, context) }
                 .onSuccess { reply ->
                     val assistantMsg = ChatMessage(

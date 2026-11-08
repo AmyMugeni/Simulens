@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.widget.Toast
+import java.time.temporal.TemporalAdjusters
 import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -82,7 +83,7 @@ data class DailyUsageTrend(
     val sessionCount: Int,
     val isToday: Boolean
 )
-
+data class WeekTotal(val weekStart: LocalDate, val minutes: Double, val partial: Boolean)
 data class AppUsageStat(
     val packageName: String,
     val displayName: String,
@@ -135,6 +136,7 @@ data class DashboardState(
     val appsToday: List<AppUsageStat> = emptyList(),
     val appsWeek: List<AppUsageStat> = emptyList(),
     val weekly: List<DailyUsageTrend> = emptyList(),
+    val weeklyTotals: List<WeekTotal> = emptyList(),
     val weeklyTotalMinutes: Double = 0.0,
     val weeklyDailyAverage: Double = 0.0,
     val allTimeTotalMinutes: Double = 0.0,
@@ -179,18 +181,21 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
     val riskPrediction: StateFlow<com.simulens.app.ml.RiskPrediction?> = behavioralSessionDao.getAllSessions()
         .map { sessions ->
-            if (sessions.isEmpty()) null
-            else {
-                val nowMs = System.currentTimeMillis()
-                val recent28Days = sessions.filter { it.timestamp >= nowMs - 28L * 24 * 60 * 60 * 1000 }
-                if (recent28Days.isEmpty()) null
-                else {
-                    val features = com.simulens.app.ml.BehavioralFeatureExtractor.extractFeatures(recent28Days, nowMs)
-                    predictor.predict(features)
-                }
-            }
+            val zone = ZoneId.systemDefault()
+            val today = LocalDate.now(zone)
+            val profile = userProfileRepository.userProfileFlow.first()
+            val timetable = timetableDao.getAllEntries()
+            val features = com.simulens.app.ml.BehavioralFeatureExtractor.extractFeatures(
+                sessions = sessions,
+                windowEnd = today,
+                wake = profile.wakeUpTime,
+                sleep = profile.sleepTime,
+                classBlocksFor = { date -> com.simulens.app.data.tracker.ClassScheduleMapper.blocksFor(date, timetable) },
+                zone = zone
+            )
+            if (features != null) predictor.predict(features) else null
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), com.simulens.app.ml.RiskPrediction(0.15, "NORMAL", 0.50))
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
@@ -436,8 +441,14 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
         val allTimeTotalMinutes = sessions.sumOf { it.elapsedDuration }
         val allTimeTotalSessions = sessions.size
-
         val earliestSessionDate = sessions.minOfOrNull { Instant.ofEpochMilli(it.timestamp).atZone(zone).toLocalDate() }
+        val thisMonday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+        val weeklyTotals = if (earliestSessionDate == null) emptyList() else
+            (7 downTo 0).map { back ->
+                val start = thisMonday.minusWeeks(back.toLong())
+                val mins = (0..6).sumOf { d -> byDate[start.plusDays(d.toLong())].orEmpty().sumOf { it.elapsedDuration } }
+                WeekTotal(start, mins, partial = back == 0)
+            }.filter { it.weekStart.plusDays(6) >= earliestSessionDate }
         val daysTrackedCount = if (earliestSessionDate != null) {
             (ChronoUnit.DAYS.between(earliestSessionDate, today).toInt() + 1).coerceAtMost(28)
         } else {
@@ -596,6 +607,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             appsToday = appsToday,
             appsWeek = appsWeek,
             weekly = weekly,
+            weeklyTotals = weeklyTotals,
             weeklyTotalMinutes = weeklyTotal,
             weeklyDailyAverage = weeklyTotal / 7.0,
             allTimeTotalMinutes = allTimeTotalMinutes,
