@@ -1,27 +1,27 @@
-# Simulens 🌿
+# Simulens
 
-**Simulens** is an adaptive, on-device Machine Learning (ML) and Retrieval-Augmented Generation (RAG) digital wellbeing system for Android. It classifies social media usage behavior, detects compulsive risk trajectories, and delivers real-time contextual nudges and personalized AI-assisted guidance for university students.
+Simulens is an adaptive, on-device Machine Learning (ML) and Retrieval-Augmented Generation (RAG) digital wellbeing system for Android. It classifies social media usage behavior, detects compulsive risk trajectories, and delivers real-time contextual nudges and personalized AI-assisted guidance for university students.
 
 ---
 
-## 🌟 Key Features
+## Key Features
 
-* **🧠 On-Device Random Forest Classifier (`simulens_rf_champion.onnx`):**
+* **On-Device Random Forest Classifier (`simulens_rf_champion.onnx`):**
   * Runs real-time ONNX model tensor inference on-device using Microsoft ONNX Runtime (`onnxruntime-android`).
-  * Evaluates **29 behavioral features** over a 28-day window (including 14-day velocity trends `duration_change` and `session_change`).
-  * Classifies behavioral trajectories into **`NORMAL`** vs **`ELEVATED`** compulsive risk levels ($\ge 50\%$ probability threshold).
+  * Evaluates 29 behavioral features over a 28-day window (including 14-day velocity trends `duration_change` and `session_change`).
+  * Classifies behavioral trajectories into `NORMAL` vs `ELEVATED` compulsive risk levels (>= 50% probability threshold).
 
-* **📊 Interactive BSMAS Assessment & Retake History:**
-  * Implements the 6-item **Bergen Social Media Addiction Scale (BSMAS)** (Scored 6–30).
-  * Categorizes risk into **`LOWER` ($\le 12$)**, **`MODERATE` ($13 \dots 18$)**, and **`ELEVATED` ($\ge 19$)** bands.
+* **Interactive BSMAS Assessment & Retake History:**
+  * Implements the 6-item Bergen Social Media Addiction Scale (BSMAS) (Scored 6-30).
+  * Categorizes risk into `LOWER` (<= 12), `MODERATE` (13 - 18), and `ELEVATED` (>= 19) bands.
   * Full retake support with score calculations and timestamped history tracking in local Room SQLite storage.
 
-* **💬 Simulens AI Companion (RAG-Powered Chatbot):**
+* **Simulens AI Companion (RAG-Powered Chatbot):**
   * Powered by LLaMA 3.3 70B Versatile via Groq Cloud API, BGE-small embeddings (`bge-small-en-v1.5`), and HMAC token authentication.
-  * **Personalization Toggle:** Dynamically constructs consented context summaries (BSMAS score, top focus struggles, sleep schedules) when enabled.
-  * **Multilingual Crisis Safety Filter:** Screens English and Kiswahili/Kenyan crisis expressions using Unicode `NFKC` normalization (`safety.py`).
+  * Personalization Toggle: Dynamically constructs consented context summaries (BSMAS score, top focus struggles, sleep schedules) when enabled.
+  * Multilingual Crisis Safety Filter: Screens English and Kiswahili/Kenyan crisis expressions using Unicode NFKC normalization (`safety.py`).
 
-* **🔔 Real-Time Nudge & Intervention Engine:**
+* **Real-Time Nudge & Intervention Engine:**
   * Evaluates active session contexts:
     * `SCHEDULE_CONFLICT` (Usage during academic lectures/classes via `ClassScheduleMapper` & timetable entries).
     * `BEDTIME_LATE_NIGHT` (Bedtime buffer violations).
@@ -29,7 +29,7 @@
     * `REOPEN_VELOCITY` (Compulsive re-opening within 5 minutes).
   * Displays full-screen interactive overlays (`InterventionOverlay`) or heads-up notifications (`InterventionNotifier`).
 
-* **📂 Privacy-Preserving CSV Dataset Exporter:**
+* **Privacy-Preserving CSV Dataset Exporter:**
   * Generates 4 structured CSV files in `ml_export/` for empirical research:
     * `behavioral_sessions.csv`
     * `daily_statistics.csv`
@@ -37,12 +37,12 @@
     * `daily_tracking_coverage.csv`
   * Features salted SHA-256 `anonymousUserId` hashing and 30-day historical data retention.
 
-* **⚙️ Background Service Resilience:**
+* **Background Service Resilience:**
   * Foreground tracking service (`AppUsageTrackerService`) with `BootReceiver` for `BOOT_COMPLETED` restart and `onTaskRemoved` task swipe re-enqueue.
 
 ---
 
-## 🏗 System Architecture & Module Structure
+## System Architecture & Module Structure
 
 ```text
 simulens/
@@ -72,6 +72,7 @@ simulens/
 │   │   └── safety.py                        # Multilingual Crisis Detection (NFKC)
 │   ├── requirements.txt
 │   └── README.md
+├── Simulens_ML_Pipeline.ipynb               # End-to-end ML Training & Evaluation Notebook
 ├── build.gradle.kts
 ├── settings.gradle.kts
 └── README.md
@@ -79,20 +80,24 @@ simulens/
 
 ---
 
-## 🧪 Machine Learning Pipeline Specs
+## Machine Learning Pipeline Specs (`Simulens_ML_Pipeline.ipynb`)
 
 | Attribute | Specification |
 | :--- | :--- |
-| **Model Architecture** | Random Forest Classifier (`n_estimators=100`, `class_weight='balanced'`) |
+| **Pipeline Notebook** | `Simulens_ML_Pipeline.ipynb` |
+| **Dataset Size** | 1,000 calibrated student profiles (80% development / 20% unseen test set) |
+| **Model Architecture** | Random Forest Classifier (`n_estimators=300`, `max_depth=12`, `class_weight='balanced'`) |
 | **Runtime Format** | Open Neural Network Exchange (ONNX) v1.x via Microsoft ONNX Runtime Android SDK |
 | **Input Tensor Shape** | `[batch_size, 37]` (29 raw extracted behavioral features + encoded categories) |
 | **Output Shape** | Class Label (`0`: NORMAL, `1`: ELEVATED) + Probability Vector |
-| **Classification Threshold** | $\ge 0.50$ ($50\%$ probability threshold) |
-| **Evaluation Metrics** | Accuracy: **95%**, Precision: **0.96**, Recall: **0.95**, F1-Score: **0.95**, ROC-AUC: **0.98+** |
+| **Classification Threshold** | >= 0.50 (50% probability threshold) |
+| **Test Accuracy** | **80.0%** (0.80) |
+| **Test ROC-AUC Score** | **0.8457** |
+| **Weighted F1-Score** | **0.79** |
 
 ---
 
-## 🛠 Setup & Technical Requirements
+## Setup & Technical Requirements
 
 * **Android Studio:** Studio Ladybug (2024.2.1) or higher
 * **Compile SDK:** 36
@@ -112,7 +117,7 @@ RAG_APP_TOKEN=your_hmac_secret_token
 
 ---
 
-## 🔒 Privacy & Safety Disclosures
+## Privacy & Safety Disclosures
 
 * **Data Safety:** All usage stats, session timestamps, and BSMAS scores are stored locally in private SQLite app storage.
 * **CSV Export:** All exported dataset CSVs use a salted SHA-256 `anonymousUserId` to guarantee participant anonymity.
