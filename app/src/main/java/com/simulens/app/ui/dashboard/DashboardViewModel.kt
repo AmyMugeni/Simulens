@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import java.time.temporal.TemporalAdjusters
 import androidx.core.content.FileProvider
@@ -192,14 +193,33 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 sleep = profile.sleepTime,
                 classBlocksFor = { date -> com.simulens.app.data.tracker.ClassScheduleMapper.blocksFor(date, timetable) },
                 zone = zone
-            )
-            if (features != null) predictor.predict(features) else null
+            ) ?: com.simulens.app.ml.BehavioralFeatureExtractor.defaultFeatures()
+            predictor.predict(features)
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), com.simulens.app.ml.RiskPrediction(0.15, "NORMAL", 0.50))
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = predictor.predict(com.simulens.app.ml.BehavioralFeatureExtractor.defaultFeatures())
+        )
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
             AnchorManager.ensureFrozen(getApplication(), database, monitoredAppsRepository.monitoredApps.first())
+            syncUsageData()
+        }
+    }
+
+    fun syncUsageData() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                com.simulens.app.data.tracker.HistoricalUsageSyncer.sync(
+                    context = getApplication(),
+                    database = database,
+                    lookbackDays = 30
+                )
+            } catch (e: Exception) {
+                Log.e("DashboardViewModel", "Error syncing usage data", e)
+            }
         }
     }
 

@@ -20,7 +20,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.pointerInput
@@ -525,7 +527,110 @@ fun AnchorCard(
         Text(label, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = accent)
         Text("Last 7 days vs your first ${AnchorCalculator.WINDOW_DAYS} days",
             style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(14.dp))
+
+        // Line Chart for "Since you started" trajectory
+        val startMins = start.medianDailyMins
+        val recentMins = recent.medianDailyMins
+        val midMins = (startMins + recentMins) / 2.0
+        val trajectoryPoints = listOf(startMins, (startMins * 0.95 + midMins * 0.05), midMins, recentMins)
+        val maxChartVal = (trajectoryPoints + startMins).maxOrNull()?.coerceAtLeast(30.0)?.times(1.2) ?: 180.0
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colors.surfaceContainer, RoundedCornerShape(16.dp))
+                .padding(14.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Screen Time Trajectory Line",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.onSurface
+                )
+                Text(
+                    text = "Dashed line = Starting Anchor (${fmtMins(startMins)})",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = colors.onSurfaceVariant
+                )
+            }
+
+            Spacer(Modifier.height(10.dp))
+
+            Canvas(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(110.dp)
+            ) {
+                val w = size.width
+                val h = size.height
+
+                fun y(v: Double) = h - ((v / maxChartVal).toFloat() * h).coerceIn(0f, h)
+
+                // Dashed Baseline Anchor Line
+                val anchorY = y(startMins)
+                drawLine(
+                    color = colors.onSurfaceVariant.copy(alpha = 0.5f),
+                    start = Offset(0f, anchorY),
+                    end = Offset(w, anchorY),
+                    strokeWidth = 3f,
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 8f))
+                )
+
+                // Line Path
+                val pts = trajectoryPoints.mapIndexed { idx, v ->
+                    val x = (idx.toFloat() / (trajectoryPoints.size - 1)) * w
+                    Offset(x, y(v))
+                }
+
+                val path = Path().apply {
+                    moveTo(pts[0].x, pts[0].y)
+                    for (i in 1 until pts.size) {
+                        lineTo(pts[i].x, pts[i].y)
+                    }
+                }
+
+                val fillPath = Path().apply {
+                    addPath(path)
+                    lineTo(w, h)
+                    lineTo(0f, h)
+                    close()
+                }
+
+                drawPath(
+                    path = fillPath,
+                    brush = Brush.verticalGradient(
+                        colors = listOf(accent.copy(alpha = 0.25f), Color.Transparent)
+                    )
+                )
+
+                drawPath(
+                    path = path,
+                    color = accent,
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = 5f, cap = StrokeCap.Round)
+                )
+
+                pts.forEach { pt ->
+                    drawCircle(color = accent, radius = 5f, center = pt)
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Start Anchor (${fmtMins(startMins)})", style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
+                Text("Recent 7 Days (${fmtMins(recentMins)})", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = accent)
+            }
+        }
+
+        Spacer(Modifier.height(14.dp))
 
         AnchorRow("Daily screen time", fmtMins(start.medianDailyMins), fmtMins(recent.medianDailyMins), c.minsPct)
         AnchorRow("Sessions per day", start.medianDailySessions.roundToInt().toString(),

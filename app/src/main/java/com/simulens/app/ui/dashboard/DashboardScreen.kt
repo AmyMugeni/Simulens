@@ -146,6 +146,13 @@ fun DashboardScreen(
                 // Behavioral Wellness Cards (Score, Risk Level, Today vs Baseline, Screen Time, Session Frequency, Timeline Strip)
                 WellnessDashboardSection(state = state)
 
+                Spacer(modifier = Modifier.height(20.dp))
+
+                MLClassifierCard(
+                    prediction = riskPrediction,
+                    onNavigateToRag = onNavigateToRag
+                )
+
                 Spacer(modifier = Modifier.height(28.dp))
 
                 // Most Used App Spotlight

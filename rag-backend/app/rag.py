@@ -105,7 +105,7 @@ async def call_llm(messages: list[dict]) -> str:
             },
         )
     r.raise_for_status()
-        text = (r.json()["choices"][0]["message"].get("content") or "").strip()
+    text = (r.json()["choices"][0]["message"].get("content") or "").strip()
     if not text:
         raise RuntimeError("The model returned an empty answer.")
     return text

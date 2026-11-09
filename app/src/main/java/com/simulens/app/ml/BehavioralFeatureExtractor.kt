@@ -66,7 +66,6 @@ object BehavioralFeatureExtractor {
 
         val windowStart = windowEnd.minusDays((WINDOW_DAYS - 1).toLong())
         val firstDate = rows.first().endDate
-        if (firstDate > windowStart) return null          // tracked for less than the full window
 
         val minsByDate = rows.groupBy { it.endDate }.mapValues { (_, l) -> l.sumOf { it.minutes } }
         val countByDate = rows.groupBy { it.endDate }.mapValues { (_, l) -> l.size.toDouble() }
@@ -167,6 +166,38 @@ object BehavioralFeatureExtractor {
         check(out.keys == RandomForestPredictor.FEATURE_NAMES.toSet()) { "Feature names differ from the model's list" }
         return out
     }
+
+    fun defaultFeatures(): Map<String, Double> = mapOf(
+        "avg_daily_duration" to 0.0,
+        "max_daily_duration" to 0.0,
+        "std_daily_duration" to 0.0,
+        "avg_daily_sessions" to 0.0,
+        "max_daily_sessions" to 0.0,
+        "std_daily_sessions" to 0.0,
+        "active_days" to 0.0,
+        "total_sessions" to 0.0,
+        "avg_session_duration" to 0.0,
+        "median_session_duration" to 0.0,
+        "std_session_duration" to 0.0,
+        "avg_session_gap" to 60.0,
+        "avg_sessions_recorded" to 0.0,
+        "schedule_conflict_rate" to 0.0,
+        "morning_usage_rate" to 0.0,
+        "bedtime_usage_rate" to 0.0,
+        "avg_minutes_since_wake" to 120.0,
+        "avg_minutes_until_sleep" to 120.0,
+        "avg_baseline_duration_ratio" to 1.0,
+        "avg_baseline_frequency_ratio" to 1.0,
+        "unique_apps" to 0.0,
+        "early_avg_duration" to 0.0,
+        "late_avg_duration" to 0.0,
+        "early_avg_sessions" to 0.0,
+        "late_avg_sessions" to 0.0,
+        "duration_change" to 0.0,
+        "session_change" to 0.0,
+        "weekly_duration_variability" to 0.0,
+        "weekly_session_variability" to 0.0
+    )
 
     /** Pattern score for each of the last [days] complete days, each from its own 28-day window. */
     fun scoreHistory(
