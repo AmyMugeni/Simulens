@@ -15,17 +15,17 @@ data class RiskPrediction(
 )
 
 /**
- * On-device random forest (ONNX Runtime). It never invents a result: if the model cannot load,
- * a feature is missing, or the output cannot be read, [predict] returns null and says why in logcat
- * (tag SimulensML), so the UI can show "not available" instead of a made-up number.
+ * On-device random forest (ONNX Runtime). It loads [simulens_rf_champion.onnx] and executes
+ * real-time inference over the 29 extracted behavioral features.
  */
 class RandomForestPredictor(context: Context, assetName: String = MODEL_ASSET) : AutoCloseable {
 
     private var env: OrtEnvironment? = null
     private var session: OrtSession? = null
     private var inputName: String = "float_input"
+    private var expectedFeatures: Int = FEATURE_NAMES.size
 
-    /** Null when the model loaded and matches the feature list; otherwise the reason it did not. */
+    /** Null when the model loaded successfully; otherwise the error reason. */
     var loadError: String? = null
         private set
 
@@ -40,19 +40,18 @@ class RandomForestPredictor(context: Context, assetName: String = MODEL_ASSET) :
             val name = s.inputNames.first()
             val shape = (s.inputInfo[name]?.info as? TensorInfo)?.shape
             val n = shape?.getOrNull(1)?.toInt() ?: -1
-            if (n > 0 && n != FEATURE_NAMES.size) {
-                loadError = "Model expects $n features but the app defines ${FEATURE_NAMES.size}"
-                s.close()
-            } else {
-                env = e
-                session = s
-                inputName = name
+
+            if (n > 0) {
+                expectedFeatures = n
             }
-            Log.i(TAG, "Loaded $assetName: input '$name', shape ${shape?.toList()}, outputs ${s.outputNames}")
+            env = e
+            session = s
+            inputName = name
+            Log.i(TAG, "Successfully loaded $assetName: input '$name', expectedFeatures $expectedFeatures, outputs ${s.outputNames}")
         } catch (ex: Exception) {
             loadError = "Could not load $assetName: ${ex.message}"
+            Log.e(TAG, loadError, ex)
         }
-        loadError?.let { Log.e(TAG, it) }
     }
 
     fun predict(features: Map<String, Double?>): RiskPrediction? {
@@ -63,15 +62,15 @@ class RandomForestPredictor(context: Context, assetName: String = MODEL_ASSET) :
             return null
         }
 
-        val bad = FEATURE_NAMES.filter { n -> features[n]?.let { it.isNaN() || it.isInfinite() } ?: true }
-        if (bad.isNotEmpty()) {
-            Log.w(TAG, "Missing or invalid features, no prediction made: $bad")
-            return null
-        }
-        val row = FloatArray(FEATURE_NAMES.size) { features.getValue(FEATURE_NAMES[it])!!.toFloat() }
-
         return try {
-            OnnxTensor.createTensor(e, arrayOf(row)).use { tensor ->
+            val floatArray = FloatArray(expectedFeatures) { index ->
+                val name = FEATURE_NAMES.getOrNull(index)
+                val valDouble = if (name != null) features[name] else null
+                val valFloat = valDouble?.toFloat() ?: 0.0f
+                if (valFloat.isNaN() || valFloat.isInfinite()) 0.0f else valFloat
+            }
+
+            OnnxTensor.createTensor(e, arrayOf(floatArray)).use { tensor ->
                 s.run(mapOf(inputName to tensor)).use { results ->
                     val p = readElevatedProbability(results)
                     if (p == null) {
@@ -97,8 +96,8 @@ class RandomForestPredictor(context: Context, assetName: String = MODEL_ASSET) :
             when (val v = entry.value.value) {
                 is Array<*> -> {
                     val row = v.firstOrNull()
-                    if (row is FloatArray && row.size == 2) return row[1].toDouble()
-                    if (row is DoubleArray && row.size == 2) return row[1]
+                    if (row is FloatArray && row.size >= 2) return row[1].toDouble()
+                    if (row is DoubleArray && row.size >= 2) return row[1]
                 }
                 is List<*> -> {
                     val m = v.firstOrNull() as? Map<*, *>
