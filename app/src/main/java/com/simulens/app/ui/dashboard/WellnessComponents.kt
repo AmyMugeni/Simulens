@@ -12,6 +12,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import com.simulens.app.ui.components.PaperclipDoodle
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -117,7 +119,8 @@ fun DayStripCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow)
+        colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(
@@ -264,92 +267,102 @@ fun WellnessStatusCard(
     val colors = MaterialTheme.colorScheme
     val accent = result.level.accent()
 
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow)
-    ) {
-        Column(modifier = Modifier.padding(22.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Wellness today",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = colors.onSurfaceVariant
-                )
-                RiskPill(text = result.level.label, accent = accent)
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row {
-                Text(
-                    text = result.score.toString(),
-                    style = MaterialTheme.typography.displayLarge.copy(fontWeight = FontWeight.SemiBold),
-                    color = colors.onSurface,
-                    modifier = Modifier.alignByBaseline()
-                )
-                Text(
-                    text = "/100",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = colors.onSurfaceVariant,
-                    modifier = Modifier
-                        .alignByBaseline()
-                        .padding(start = 4.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(verticalAlignment = Alignment.Top) {
-                ToneDot(tone = result.headlineTone, topPadding = 8.dp)
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = result.headline,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = colors.onSurface
-                )
-            }
-
-            Spacer(modifier = Modifier.height(18.dp))
-
-            ScoreCurve(timeline = timeline, accent = accent)
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                listOf("12a", "6a", "12p", "6p", "12a").forEach { label ->
+    Box(modifier = modifier.fillMaxWidth()) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
+            Column(modifier = Modifier.padding(22.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
-                        text = label,
-                        style = MaterialTheme.typography.labelSmall,
+                        text = "Wellness today",
+                        style = MaterialTheme.typography.labelLarge,
                         color = colors.onSurfaceVariant
                     )
+                    RiskPill(text = result.level.label, accent = accent)
                 }
-            }
 
-            if (result.reasons.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(14.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    result.reasons.forEach { reason ->
-                        Row(verticalAlignment = Alignment.Top) {
-                            ToneDot(tone = reason.tone, topPadding = 6.dp)
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text(
-                                text = reason.text,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = colors.onSurfaceVariant
-                            )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row {
+                    Text(
+                        text = result.score.toString(),
+                        style = MaterialTheme.typography.displayLarge.copy(fontWeight = FontWeight.SemiBold),
+                        color = colors.onSurface,
+                        modifier = Modifier.alignByBaseline()
+                    )
+                    Text(
+                        text = "/100",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = colors.onSurfaceVariant,
+                        modifier = Modifier
+                            .alignByBaseline()
+                            .padding(start = 4.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(verticalAlignment = Alignment.Top) {
+                    ToneDot(tone = result.headlineTone, topPadding = 8.dp)
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = result.headline,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = colors.onSurface
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                ScoreCurve(timeline = timeline, accent = accent)
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    listOf("12a", "6a", "12p", "6p", "12a").forEach { label ->
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = colors.onSurfaceVariant
+                        )
+                    }
+                }
+
+                if (result.reasons.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        result.reasons.forEach { reason ->
+                            Row(verticalAlignment = Alignment.Top) {
+                                ToneDot(tone = reason.tone, topPadding = 6.dp)
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = reason.text,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = colors.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
             }
         }
+
+        PaperclipDoodle(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .offset(x = (-20).dp, y = (-12).dp)
+                .rotate(15f)
+        )
     }
 }
 
@@ -465,7 +478,8 @@ fun TodayVsBaselineCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow)
+        colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Text(
@@ -721,7 +735,8 @@ private fun MetricCard(
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Column(modifier = Modifier.padding(18.dp), content = content)
     }

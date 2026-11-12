@@ -138,7 +138,8 @@ private fun BaselineHeaderCard(baselines: Map<DayOfWeek, WeekdayBaseline>, spanD
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
-        border = BorderStroke(1.dp, colors.outlineVariant)
+        border = BorderStroke(1.dp, colors.outlineVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Column(Modifier.padding(20.dp)) {
             Row(
@@ -483,7 +484,7 @@ private fun BaselineCard(title: String, content: @Composable ColumnScope.() -> U
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
         border = BorderStroke(1.dp, colors.outlineVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Column(Modifier.padding(20.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium,

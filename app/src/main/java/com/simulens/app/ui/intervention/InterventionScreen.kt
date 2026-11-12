@@ -3,6 +3,7 @@ package com.simulens.app.ui.intervention
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -16,7 +17,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -24,14 +24,20 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner // older Compose: androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.simulens.app.data.local.entity.InterventionLogEntity
+import androidx.compose.ui.draw.rotate
 import com.simulens.app.ui.components.AppIcon
+import com.simulens.app.ui.components.InkAvatar
+import com.simulens.app.ui.components.PaperclipDoodle
+import com.simulens.app.ui.components.PencilDoodle
 import com.simulens.app.ui.components.PillBadge
+import com.simulens.app.ui.components.SquigglyDoodle
+import com.simulens.app.ui.components.highlighter
 import com.simulens.app.ui.dashboard.formatDuration
 import com.simulens.app.data.tracker.InterventionActionReceiver
-import com.simulens.app.ui.theme.SimulensTheme
+import com.simulens.app.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -41,7 +47,9 @@ import java.util.Locale
 fun InterventionScreen(
     viewModel: InterventionViewModel = viewModel(),
     onNavigateBack: () -> Unit = {},
-    onNavigateToRag: () -> Unit = {}
+    onNavigateToRag: () -> Unit = {},
+    showBackButton: Boolean = true,
+    username: String = "S"
 ) {
     val state by viewModel.uiState.collectAsState()
     val colors = MaterialTheme.colorScheme
@@ -52,7 +60,6 @@ fun InterventionScreen(
     var showClearConfirm by remember { mutableStateOf(false) }
     var overlayOk by remember { mutableStateOf(InterventionOverlay.canShow(context)) }
 
-    // The user returns from Settings without a result callback, so re-check on resume.
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -72,25 +79,58 @@ fun InterventionScreen(
     }
 
     Scaffold(
+        containerColor = InkBackground,
         topBar = {
             TopAppBar(
                 title = {
-                    Text("Interventions & Nudges", fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleLarge)
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = colors.onSurface)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                            Text(
+                                "Your gentle reminders",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = InkTextSecondary
+                            )
+                            Spacer(Modifier.height(2.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    "Nudges",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = InkTextPrimary,
+                                    modifier = Modifier.highlighter()
+                                )
+                                Spacer(Modifier.width(6.dp))
+                                PencilDoodle(modifier = Modifier.rotate(15f))
+                            }
+                        }
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.wrapContentWidth()
+                        ) {
+                            SquigglyDoodle(color = IceBlue, modifier = Modifier.padding(end = 12.dp))
+                            InkAvatar(initial = username.ifBlank { "S" }, size = 34.dp)
+                            Spacer(Modifier.width(8.dp))
+                            IconButton(onClick = simulate) {
+                                Icon(Icons.Default.PlayArrow, "Test nudge", tint = InkAmber)
+                            }
+                        }
                     }
                 },
-                actions = {
-                    IconButton(onClick = simulate) {
-                        Icon(Icons.Default.PlayArrow, "Test nudge", tint = colors.primary)
+                navigationIcon = {
+                    if (showBackButton) {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = InkTextPrimary)
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = colors.background,
-                    titleContentColor = colors.onBackground
+                    containerColor = InkBackground,
+                    titleContentColor = InkTextPrimary
                 )
             )
         }
@@ -99,7 +139,7 @@ fun InterventionScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(colors.background),
+                .background(InkBackground),
             contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -109,6 +149,10 @@ fun InterventionScreen(
                         context.startActivity(InterventionOverlay.permissionIntent(context))
                     })
                 }
+            }
+
+            item(key = "profile_rule_card") {
+                ProfileToneRuleCard()
             }
 
             item(key = "overview_card") {
@@ -123,9 +167,13 @@ fun InterventionScreen(
 
             item(key = "filter_row") {
                 Column {
-                    Text("Filter by rule type", style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold, color = colors.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 8.dp))
+                    Text(
+                        "Intervention history",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = InkTextPrimary,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(InterventionFilter.entries.toTypedArray()) { option ->
                             FilterChip(
@@ -134,7 +182,19 @@ fun InterventionScreen(
                                 label = { Text(option.label) },
                                 leadingIcon = if (state.filter == option) {
                                     { Icon(Icons.Default.Check, null, modifier = Modifier.size(16.dp)) }
-                                } else null
+                                } else null,
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = IceBlue,
+                                    selectedLabelColor = Color.White,
+                                    containerColor = InkSurface,
+                                    labelColor = InkTextSecondary
+                                ),
+                                border = FilterChipDefaults.filterChipBorder(
+                                    borderColor = InkBorder,
+                                    selectedBorderColor = IceBlue,
+                                    enabled = true,
+                                    selected = state.filter == option
+                                )
                             )
                         }
                     }
@@ -147,13 +207,14 @@ fun InterventionScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Intervention history (${state.filteredLogs.size})",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold, color = colors.onSurface)
+                    Text(
+                        "Showing ${state.filteredLogs.size} of ${state.logs.size}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = InkTextSecondary
+                    )
                     if (state.logs.isNotEmpty()) {
                         TextButton(onClick = { showClearConfirm = true }) {
-                            Text("Clear all", color = colors.error,
-                                style = MaterialTheme.typography.labelMedium)
+                            Text("Clear all", color = RiskHigh, style = MaterialTheme.typography.labelMedium)
                         }
                     }
                 }
@@ -177,13 +238,13 @@ fun InterventionScreen(
         }
     }
 
-    // Fallback in-app dialog (only used when the overlay could not be shown).
+    // Fallback in-app dialog
     state.activePreviewNudge?.let { nudge ->
         NudgePreviewDialog(
             nudge = nudge,
             onAccept = { viewModel.dismissPreviewNudge() },
             onSnooze = {
-                InterventionActionReceiver.snooze(context) // same snooze store as everything else
+                InterventionActionReceiver.snooze(context)
                 viewModel.dismissPreviewNudge()
             },
             onDismiss = { viewModel.dismissPreviewNudge() },
@@ -197,19 +258,29 @@ fun InterventionScreen(
     if (showPermissionDialog) {
         AlertDialog(
             onDismissRequest = { showPermissionDialog = false },
-            title = { Text("Allow display over other apps") },
+            containerColor = InkSurface,
+            title = { Text("Allow display over other apps", color = InkTextPrimary, fontWeight = FontWeight.Bold) },
             text = {
-                Text("Simulens needs this permission to show a full-screen pause when you have " +
-                        "spent too long in an app. You can turn it off anytime in Settings.")
+                Text(
+                    "Simulens shows mindful intervention dialogs over monitored apps when focus limits are reached.",
+                    color = InkTextSecondary
+                )
             },
             confirmButton = {
-                Button(onClick = {
-                    showPermissionDialog = false
-                    context.startActivity(InterventionOverlay.permissionIntent(context))
-                }) { Text("Open Settings") }
+                Button(
+                    onClick = {
+                        showPermissionDialog = false
+                        context.startActivity(InterventionOverlay.permissionIntent(context))
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = InkAmber, contentColor = InkOnAmber)
+                ) {
+                    Text("Open Settings")
+                }
             },
             dismissButton = {
-                TextButton(onClick = { showPermissionDialog = false }) { Text("Not now") }
+                TextButton(onClick = { showPermissionDialog = false }) {
+                    Text("Later", color = InkTextSecondary)
+                }
             }
         )
     }
@@ -217,26 +288,66 @@ fun InterventionScreen(
     if (showClearConfirm) {
         AlertDialog(
             onDismissRequest = { showClearConfirm = false },
-            title = { Text("Clear intervention history?") },
-            text = { Text("This removes all ${state.logs.size} entries. It can't be undone.") },
+            containerColor = InkSurface,
+            title = { Text("Clear all intervention logs?", color = InkTextPrimary, fontWeight = FontWeight.Bold) },
+            text = { Text("This will permanently remove your recorded focus history.", color = InkTextSecondary) },
             confirmButton = {
-                Button(
-                    onClick = { showClearConfirm = false; viewModel.clearAllLogs() },
-                    colors = ButtonDefaults.buttonColors(containerColor = colors.error)
-                ) { Text("Clear") }
+                TextButton(onClick = {
+                    viewModel.clearAllLogs()
+                    showClearConfirm = false
+                }) {
+                    Text("Clear All", color = RiskHigh, fontWeight = FontWeight.Bold)
+                }
             },
             dismissButton = {
-                TextButton(onClick = { showClearConfirm = false }) { Text("Cancel") }
+                TextButton(onClick = { showClearConfirm = false }) {
+                    Text("Cancel", color = InkTextSecondary)
+                }
             }
         )
     }
 }
 
-// ------------------------------------------------------------------------------------------
+@Composable
+private fun ProfileToneRuleCard() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = InkSurface),
+        border = BorderStroke(1.dp, InkBorder)
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text(
+                "FROM YOUR PROFILE",
+                style = MaterialTheme.typography.labelSmall,
+                color = InkTextMuted,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Gentle tone · Monitored apps · Phone-free lectures",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = InkTextPrimary,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    "Active",
+                    color = RiskLow,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
 
-/** Turns a stored triggerReason into a short readable rule name. */
-internal fun ruleLabel(reason: String): String = when {
-    reason.startsWith("SNOOZED", true) -> "Snoozed"
+private fun ruleLabel(reason: String): String = when {
     reason.startsWith("DISMISSED", true) -> "Dismissed"
     reason.contains("SCHEDULE", true) -> "In class"
     reason.contains("SLEEP_WINDOW", true) -> "Sleep window"
@@ -250,22 +361,23 @@ internal fun ruleLabel(reason: String): String = when {
 
 @Composable
 private fun OverlayPermissionBanner(onEnable: () -> Unit) {
-    val colors = MaterialTheme.colorScheme
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = colors.errorContainer.copy(alpha = 0.5f),
-        border = BorderStroke(1.dp, colors.error.copy(alpha = 0.3f))
+        color = RiskHighBg,
+        border = BorderStroke(1.dp, RiskHigh.copy(alpha = 0.3f))
     ) {
         Row(
-            Modifier.fillMaxWidth().padding(start = 14.dp, top = 8.dp, bottom = 8.dp, end = 6.dp),
+            Modifier
+                .fillMaxWidth()
+                .padding(start = 14.dp, top = 8.dp, bottom = 8.dp, end = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(Modifier.weight(1f)) {
-                Text("Full-screen nudges are off", fontWeight = FontWeight.Bold, color = colors.onSurface)
+                Text("Full-screen nudges are off", fontWeight = FontWeight.Bold, color = InkTextPrimary)
                 Text("Nudges will arrive as notifications only.",
-                    style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                    style = MaterialTheme.typography.bodySmall, color = InkTextSecondary)
             }
-            TextButton(onClick = onEnable) { Text("Enable") }
+            TextButton(onClick = onEnable) { Text("Enable", color = IceBlue) }
         }
     }
 }
@@ -278,13 +390,13 @@ private fun OverviewCard(
     mostCommonReason: String,
     onSimulate: () -> Unit
 ) {
-    val colors = MaterialTheme.colorScheme
+    var protectionOn by remember { mutableStateOf(true) }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
-        border = BorderStroke(1.dp, colors.outlineVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(containerColor = InkSurface),
+        border = BorderStroke(1.dp, InkBorder)
     ) {
         Column(Modifier.padding(20.dp)) {
             Row(
@@ -292,61 +404,40 @@ private fun OverviewCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.size(42.dp).background(
-                            Brush.linearGradient(listOf(colors.primary, colors.secondary)), CircleShape)
-                    ) {
-                        Icon(Icons.Default.Shield, null, tint = colors.onPrimary, modifier = Modifier.size(22.dp))
-                    }
-                    Spacer(Modifier.width(12.dp))
-                    Column {
-                        Text("Active nudge protection", style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold, color = colors.onSurface)
-                        Text("Circadian & focus rule engine", style = MaterialTheme.typography.labelSmall,
-                            color = colors.onSurfaceVariant)
-                    }
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        "Nudge protection",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = InkTextPrimary
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        if (protectionOn) "On. Watching monitored apps during class & sleep hours."
+                        else "Paused. Nudges currently muted.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = InkTextSecondary
+                    )
                 }
-                PillBadge("ACTIVE", containerColor = colors.primaryContainer, contentColor = colors.onPrimaryContainer)
+
+                Switch(
+                    checked = protectionOn,
+                    onCheckedChange = { protectionOn = it },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = InkOnAmber,
+                        checkedTrackColor = InkAmber,
+                        uncheckedTrackColor = InkSurfaceHigh
+                    )
+                )
             }
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(18.dp))
 
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                StatPill(Modifier.weight(1f), "Today", todayCount.toString(),
-                    colors.primaryContainer, colors.onPrimaryContainer)
-                StatPill(Modifier.weight(1f), "7 days", weekCount.toString(),
-                    colors.secondaryContainer, colors.onSecondaryContainer)
-                StatPill(Modifier.weight(1f), "Top app", topAppName ?: "None",
-                    colors.tertiaryContainer, colors.onTertiaryContainer)
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Surface(
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                    color = colors.surfaceContainer
-                ) {
-                    Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Info, null, tint = colors.primary, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Most frequent: $mostCommonReason",
-                            style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant,
-                            maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    }
-                }
-                Spacer(Modifier.width(8.dp))
-                IconButton(
-                    onClick = onSimulate,
-                    modifier = Modifier.size(36.dp).background(colors.primaryContainer, CircleShape)
-                ) {
-                    Icon(Icons.Default.PlayArrow, "Test nudge", tint = colors.onPrimaryContainer,
-                        modifier = Modifier.size(20.dp))
-                }
+            // 3-Column Stats Row
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                StatPill(Modifier.weight(1f), "TODAY", "$todayCount nudges", IceBlueContainer, IceBlue)
+                StatPill(Modifier.weight(1f), "7 DAYS", "$weekCount nudges", InkSurfaceHigh, InkAmber)
+                StatPill(Modifier.weight(1f), "TOP APP", topAppName ?: "None", InkSurfaceHigh, InkTextPrimary)
             }
         }
     }
@@ -357,15 +448,34 @@ private fun StatPill(
     modifier: Modifier,
     label: String,
     value: String,
-    containerColor: Color,
-    contentColor: Color
+    bg: Color,
+    fg: Color
 ) {
-    Surface(modifier = modifier, shape = RoundedCornerShape(16.dp), color = containerColor) {
-        Column(Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
-                color = contentColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Spacer(Modifier.height(2.dp))
-            Text(label, style = MaterialTheme.typography.labelSmall, color = contentColor.copy(alpha = 0.8f))
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        color = bg,
+        border = BorderStroke(1.dp, InkBorder)
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = InkTextMuted,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = fg,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
@@ -378,67 +488,54 @@ private fun InterventionLogCard(
     onDelete: () -> Unit,
     onAskRag: () -> Unit
 ) {
-    val colors = MaterialTheme.colorScheme
-    val detail = log.triggerReason.substringAfter(": ", log.triggerReason)
-
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
-        border = BorderStroke(1.dp, colors.outlineVariant)
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = InkSurface),
+        border = BorderStroke(1.dp, InkBorder)
     ) {
         Column(Modifier.padding(16.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                AppIcon(packageName = log.packageName, size = 44.dp)
-                Spacer(Modifier.width(14.dp))
+                AppIcon(packageName = log.packageName, size = 40.dp)
+                Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(appName, style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold, color = colors.onSurface)
-                    Text(dateFormat.format(Date(log.timestamp)),
-                        style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
-                }
-                // Legacy snooze/dismiss rows store 0, so only show a real duration.
-                if (log.sessionDurationMins > 0f) {
-                    PillBadge(
-                        text = formatDuration(log.sessionDurationMins.toDouble()),
-                        containerColor = colors.secondaryContainer,
-                        contentColor = colors.onSecondaryContainer
+                    Text(
+                        appName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = InkTextPrimary
+                    )
+                    Text(
+                        "${ruleLabel(log.triggerReason)} · ${dateFormat.format(Date(log.timestamp))}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = InkTextSecondary
                     )
                 }
-                IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Close, "Delete log", tint = colors.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp))
+
+                Surface(
+                    onClick = onAskRag,
+                    shape = RoundedCornerShape(12.dp),
+                    color = InkSurfaceHigh,
+                    border = BorderStroke(1.dp, IceBlue.copy(alpha = 0.5f))
+                ) {
+                    Text(
+                        text = "Ask AI",
+                        color = IceBlue,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                    )
                 }
-            }
 
-            Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.width(4.dp))
 
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = colors.errorContainer.copy(alpha = 0.3f),
-                border = BorderStroke(1.dp, colors.error.copy(alpha = 0.2f))
-            ) {
-                Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.NotificationsActive, null, tint = colors.error,
-                            modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(ruleLabel(log.triggerReason), style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold, color = colors.onSurface,
-                            modifier = Modifier.weight(1f))
-                        if (log.wasDismissed) {
-                            PillBadge("DISMISSED", containerColor = colors.surfaceContainerHigh, contentColor = colors.onSurfaceVariant)
-                        }
-                    }
-                    Spacer(Modifier.height(4.dp))
-                    Text(detail, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
-                    TextButton(
-                        onClick = onAskRag,
-                        contentPadding = PaddingValues(horizontal = 0.dp, vertical = 2.dp)
-                    ) {
-                        Text("Ask AI \uD83E\uDD16", style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold, color = colors.primary)
-                    }
+                IconButton(onClick = onDelete, modifier = Modifier.size(28.dp)) {
+                    Icon(
+                        Icons.Default.Close,
+                        "Delete log",
+                        tint = InkTextMuted,
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
             }
         }
@@ -447,34 +544,41 @@ private fun InterventionLogCard(
 
 @Composable
 private fun EmptyInterventionState(hasAnyLogs: Boolean, onTestNudge: () -> Unit) {
-    val colors = MaterialTheme.colorScheme
     Box(Modifier.fillMaxWidth().padding(vertical = 40.dp), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier.size(64.dp).background(colors.surfaceContainerHigh, CircleShape)
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(InkSurfaceHigh, CircleShape)
+                    .border(1.dp, InkBorder, CircleShape)
             ) {
-                Icon(Icons.Default.NotificationsActive, null, tint = colors.primary,
-                    modifier = Modifier.size(32.dp))
+                Icon(Icons.Default.Shield, null, tint = IceBlue, modifier = Modifier.size(28.dp))
             }
             Spacer(Modifier.height(16.dp))
             Text(
                 if (hasAnyLogs) "No interventions match this filter" else "No interventions triggered yet",
-                style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold,
-                color = colors.onSurface
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = InkTextPrimary
             )
             Spacer(Modifier.height(6.dp))
             Text(
                 if (hasAnyLogs) "Try switching filter options above."
                 else "Simulens watches your tracked apps and steps in when a boundary is crossed.",
-                style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+                color = InkTextSecondary,
                 modifier = Modifier.padding(horizontal = 32.dp)
             )
             Spacer(Modifier.height(20.dp))
-            OutlinedButton(onClick = onTestNudge, shape = RoundedCornerShape(12.dp)) {
+            Button(
+                onClick = onTestNudge,
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = InkAmber, contentColor = InkOnAmber)
+            ) {
                 Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("Test sample nudge")
+                Text("Test sample nudge", fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -488,58 +592,33 @@ private fun NudgePreviewDialog(
     onDismiss: () -> Unit,
     onLearnMore: () -> Unit
 ) {
-    val colors = MaterialTheme.colorScheme
     AlertDialog(
         onDismissRequest = onDismiss,
-        icon = {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.size(56.dp).background(
-                    Brush.linearGradient(listOf(colors.primary, colors.secondary)), CircleShape)
-            ) {
-                Icon(Icons.Default.Shield, null, tint = colors.onPrimary, modifier = Modifier.size(30.dp))
-            }
+        containerColor = InkSurface,
+        title = {
+            Text(nudge.title, fontWeight = FontWeight.Bold, color = InkTextPrimary)
         },
-        title = { Text(nudge.title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall) },
         text = {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 8.dp)) {
-                    AppIcon(packageName = nudge.packageName, size = 32.dp)
-                    Spacer(Modifier.width(10.dp))
-                    Text(nudge.appName, style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold, color = colors.onSurface)
-                }
+            Column {
+                Text(nudge.message, color = InkTextSecondary)
                 Spacer(Modifier.height(8.dp))
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = colors.errorContainer.copy(alpha = 0.4f),
-                    border = BorderStroke(1.dp, colors.error.copy(alpha = 0.3f))
-                ) {
-                    Text(nudge.message, style = MaterialTheme.typography.bodyMedium,
-                        color = colors.onSurface, modifier = Modifier.padding(14.dp))
-                }
-                Spacer(Modifier.height(12.dp))
-                TextButton(onClick = onLearnMore, modifier = Modifier.fillMaxWidth()) {
-                    Icon(Icons.Default.Info, null, tint = colors.primary, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Learn more (ask AI chatbot)", style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold, color = colors.primary)
+                TextButton(onClick = onLearnMore) {
+                    Text("Chat with Sidekick \uD83E\uDD16", color = IceBlue, fontWeight = FontWeight.Bold)
                 }
             }
         },
         confirmButton = {
-            Button(onClick = onAccept, shape = RoundedCornerShape(12.dp)) {
-                Text("Accept (take break)", fontWeight = FontWeight.Bold)
+            Button(
+                onClick = onAccept,
+                colors = ButtonDefaults.buttonColors(containerColor = InkAmber, contentColor = InkOnAmber)
+            ) {
+                Text("Take Break", fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
-            Row {
-                TextButton(onClick = onSnooze) { Text("Snooze 15m") }
-                Spacer(Modifier.width(4.dp))
-                TextButton(onClick = onDismiss) { Text("Dismiss") }
+            TextButton(onClick = onSnooze) {
+                Text("Snooze 15m", color = InkTextSecondary)
             }
-        },
-        shape = RoundedCornerShape(24.dp),
-        containerColor = colors.surfaceContainerLow
+        }
     )
 }

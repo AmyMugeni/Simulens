@@ -9,25 +9,27 @@ import android.provider.Settings
 import android.view.WindowManager
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.unit.dp
+import com.simulens.app.ui.components.TapeDoodle
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -41,10 +43,10 @@ import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.simulens.app.MainActivity
 import com.simulens.app.ui.components.AppIcon
+import com.simulens.app.ui.components.SquigglyDoodle
 import com.simulens.app.data.tracker.InterventionActionReceiver
 import com.simulens.app.data.tracker.InterventionExtras
-// import com.simulens.app.ui.theme.SimulensTheme                      // your theme
-
+import com.simulens.app.ui.theme.*
 
 object InterventionOverlay {
 
@@ -93,8 +95,9 @@ object InterventionOverlay {
             setViewTreeViewModelStoreOwner(lifecycleOwner)
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
-                // Wrap in your theme so colors match the app, e.g. SimulensTheme { ... }
-                OverlayContent(nudge = nudge, onAction = ::finish)
+                SimulensTheme {
+                    OverlayContent(nudge = nudge, onAction = ::finish)
+                }
             }
         }
 
@@ -156,86 +159,198 @@ enum class OverlayAction { TAKE_BREAK, SNOOZE, DISMISS, LEARN_MORE }
 
 @Composable
 private fun OverlayContent(nudge: NudgePreview, onAction: (OverlayAction) -> Unit) {
-    val colors = MaterialTheme.colorScheme
-
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.88f))
+            .background(Color.Black.copy(alpha = 0.82f))
             .statusBarsPadding()
             .navigationBarsPadding()
-            .padding(24.dp),
-        contentAlignment = Alignment.Center
+            .padding(20.dp),
+        contentAlignment = Alignment.BottomCenter
     ) {
-        Surface(
-            shape = RoundedCornerShape(28.dp),
-            color = colors.surfaceContainerLow,
-            tonalElevation = 6.dp,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()).padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Surface(
+                shape = RoundedCornerShape(28.dp),
+                color = InkSurface,
+                border = BorderStroke(1.dp, InkBorder),
+                tonalElevation = 8.dp,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.size(64.dp).background(
-                        Brush.linearGradient(listOf(colors.primary, colors.secondary)), CircleShape
-                    )
+                Column(
+                    modifier = Modifier
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 24.dp, vertical = 24.dp),
+                    horizontalAlignment = Alignment.Start
                 ) {
-                    Icon(Icons.Default.Shield, null, tint = colors.onPrimary, modifier = Modifier.size(34.dp))
+                // Header decoration and shield
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(46.dp)
+                            .background(InkSurfaceHigh, CircleShape)
+                            .border(1.dp, InkBorder, CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Shield,
+                            contentDescription = null,
+                            tint = IceBlue,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                    SquigglyDoodle(color = IceBlue, strokeWidth = 3.5f)
                 }
 
                 Spacer(Modifier.height(16.dp))
-                Text(nudge.title, style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold, color = colors.onSurface, textAlign = TextAlign.Center)
 
-                Spacer(Modifier.height(12.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    AppIcon(packageName = nudge.packageName, size = 32.dp)
-                    Spacer(Modifier.width(10.dp))
-                    Text(nudge.appName, style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold, color = colors.onSurface)
-                }
+                Text(
+                    text = nudge.title.ifBlank { "You're in class" },
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = InkTextPrimary
+                )
 
-                Spacer(Modifier.height(16.dp))
+                Text(
+                    text = "Focus protection active",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = InkTextSecondary
+                )
+
+                Spacer(Modifier.height(18.dp))
+
+                // App info card
                 Surface(
                     shape = RoundedCornerShape(16.dp),
-                    color = colors.errorContainer.copy(alpha = 0.4f),
-                    border = BorderStroke(1.dp, colors.error.copy(alpha = 0.3f))
+                    color = InkSurfaceHigh,
+                    border = BorderStroke(1.dp, InkBorder),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(nudge.message, style = MaterialTheme.typography.bodyMedium,
-                        color = colors.onSurface, modifier = Modifier.padding(16.dp))
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        AppIcon(packageName = nudge.packageName, size = 36.dp)
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = nudge.appName.ifBlank { "Monitored App" },
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = InkTextPrimary
+                            )
+                            Text(
+                                text = "Opened during focus session",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = InkTextSecondary
+                            )
+                        }
+                    }
                 }
 
-                Spacer(Modifier.height(8.dp))
-                TextButton(onClick = { onAction(OverlayAction.LEARN_MORE) }) {
-                    Icon(Icons.Default.Info, null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Learn More (Ask AI Chatbot)", fontWeight = FontWeight.Bold)
-                }
+                Spacer(Modifier.height(16.dp))
 
-                Spacer(Modifier.height(12.dp))
+                // Body Message
+                Text(
+                    text = nudge.message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = InkTextPrimary,
+                    lineHeight = MaterialTheme.typography.bodyMedium.lineHeight
+                )
+
+                Spacer(Modifier.height(22.dp))
+
+                // Primary CTA (Golden Amber button)
                 Button(
                     onClick = { onAction(OverlayAction.TAKE_BREAK) },
-                    shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier.fillMaxWidth().height(52.dp)
-                ) { Text("Accept (Take Break)", fontWeight = FontWeight.Bold) }
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = InkAmber,
+                        contentColor = InkOnAmber
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                ) {
+                    Text(
+                        text = "Take a 5-min break",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
 
-                Spacer(Modifier.height(8.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(
-                        onClick = { onAction(OverlayAction.SNOOZE) },
-                        shape = RoundedCornerShape(14.dp), modifier = Modifier.weight(1f)
-                    ) { Text("Snooze 15m") }
-                    OutlinedButton(
-                        onClick = { onAction(OverlayAction.DISMISS) },
-                        shape = RoundedCornerShape(14.dp), modifier = Modifier.weight(1f)
-                    ) { Text("Dismiss") }
+                Spacer(Modifier.height(10.dp))
+
+                // Secondary CTA (Chat with Sidekick)
+                Surface(
+                    onClick = { onAction(OverlayAction.LEARN_MORE) },
+                    shape = RoundedCornerShape(16.dp),
+                    color = InkSurfaceHigh,
+                    border = BorderStroke(1.dp, IceBlue.copy(alpha = 0.6f)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Chat,
+                            contentDescription = null,
+                            tint = IceBlue,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = "Chat with Sidekick",
+                            color = IceBlue,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(14.dp))
+
+                // Bottom dismiss and snooze actions
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = { onAction(OverlayAction.SNOOZE) }) {
+                        Text(
+                            text = "Snooze 15 min",
+                            color = InkTextSecondary,
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
+
+                    TextButton(onClick = { onAction(OverlayAction.DISMISS) }) {
+                        Text(
+                            text = "Not now",
+                            color = InkTextSecondary,
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    }
                 }
             }
+
+            TapeDoodle(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .offset(y = (-8).dp)
+                    .rotate(-4f)
+            )
         }
     }
+}
 }
 
 private class OverlayOwner : LifecycleOwner, SavedStateRegistryOwner, ViewModelStoreOwner {

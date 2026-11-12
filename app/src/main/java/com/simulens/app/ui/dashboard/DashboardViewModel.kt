@@ -182,6 +182,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
     val riskPrediction: StateFlow<com.simulens.app.ml.RiskPrediction?> = behavioralSessionDao.getAllSessions()
         .map { sessions ->
+            Log.d("SimulensML", "riskPrediction Flow triggered: total DB sessions=${sessions.size}")
             val zone = ZoneId.systemDefault()
             val today = LocalDate.now(zone)
             val profile = userProfileRepository.userProfileFlow.first()
@@ -194,7 +195,10 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 classBlocksFor = { date -> com.simulens.app.data.tracker.ClassScheduleMapper.blocksFor(date, timetable) },
                 zone = zone
             ) ?: com.simulens.app.ml.BehavioralFeatureExtractor.defaultFeatures()
-            predictor.predict(features)
+            Log.d("SimulensML", "Extracted ${features.size} features. Running ONNX prediction...")
+            val result = predictor.predict(features)
+            Log.d("SimulensML", "ONNX Predict Result: $result")
+            result
         }
         .stateIn(
             scope = viewModelScope,

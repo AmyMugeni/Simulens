@@ -35,9 +35,16 @@ import com.simulens.app.BuildConfig
 import com.simulens.app.domain.bsmas.BsmasBand
 import com.simulens.app.domain.bsmas.BsmasScoring
 import com.simulens.app.ui.components.GradientButton
+import com.simulens.app.ui.components.InkAvatar
+import com.simulens.app.ui.components.PaperclipDoodle
+import com.simulens.app.ui.components.PencilDoodle
 import com.simulens.app.ui.components.PillBadge
 import com.simulens.app.ui.components.SectionHeader
+import com.simulens.app.ui.components.SquigglyDoodle
+import com.simulens.app.ui.components.TapeDoodle
 import com.simulens.app.ui.components.TimePickerCard
+import com.simulens.app.ui.components.highlighter
+import com.simulens.app.ui.theme.*
 import com.simulens.app.ui.onboarding.OnboardingViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -126,11 +133,16 @@ fun ProfileScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        "Edit Profile",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleLarge
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "Edit Profile",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleLarge,
+                            modifier = Modifier.highlighter()
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        SquigglyDoodle(color = IceBlue)
+                    }
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
@@ -181,27 +193,11 @@ fun ProfileScreen(
                 .padding(horizontal = 24.dp, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Avatar Surface
-            Surface(
-                modifier = Modifier
-                    .size(92.dp)
-                    .clip(CircleShape),
-                shape = CircleShape,
-                color = colors.primaryContainer,
-                border = BorderStroke(
-                    width = 2.5.dp,
-                    brush = Brush.linearGradient(colors = listOf(colors.primary, colors.secondary))
-                )
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        Icons.Default.Person,
-                        contentDescription = "Profile Avatar",
-                        modifier = Modifier.size(50.dp),
-                        tint = colors.onPrimaryContainer
-                    )
-                }
-            }
+            // Ink Avatar Badge
+            InkAvatar(
+                initial = userProfile.username.ifBlank { "S" },
+                size = 92.dp
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -811,14 +807,14 @@ fun ProfileScreen(
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Text(
-                        text = "Sign Out & Reset Database",
+                        text = "Sign Out & Reset App Data",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = colors.onSurface
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Clears all local database records, sessions, and profile data to start completely fresh.",
+                        text = "Clears all local database records, sessions, and profile data so you can sign out and sign back in fresh as yourself.",
                         style = MaterialTheme.typography.bodySmall,
                         color = colors.onSurfaceVariant
                     )
@@ -840,30 +836,7 @@ fun ProfileScreen(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Sign Out & Delete All Data (Start Fresh)", fontWeight = FontWeight.Bold)
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    OutlinedButton(
-                        onClick = {
-                            viewModel.resetAccountForAmyMugeni {
-                                scope.launch {
-                                    snackbarHostState.showSnackbar("Database cleared! Profile reset for Amy Mugeni.")
-                                }
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.error)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Reset DB & Register as Amy Mugeni", fontWeight = FontWeight.Bold)
+                        Text("Reset App & Sign Out", fontWeight = FontWeight.Bold)
                     }
                 }
             }

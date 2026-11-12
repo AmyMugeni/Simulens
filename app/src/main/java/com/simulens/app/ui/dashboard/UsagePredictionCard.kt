@@ -1,5 +1,6 @@
 package com.simulens.app.ui.dashboard
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -10,23 +11,29 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.simulens.app.domain.rules.intervention.Trajectory
 import com.simulens.app.ml.RiskPrediction
 import com.simulens.app.ui.components.PillBadge
+import com.simulens.app.ui.theme.*
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.ceil
@@ -36,6 +43,7 @@ import kotlin.math.roundToInt
 @Composable
 fun MLClassifierCard(
     prediction: RiskPrediction?,
+    trajectory: Trajectory? = null,
     onNavigateToRag: () -> Unit
 ) {
     val colors = MaterialTheme.colorScheme
@@ -99,7 +107,8 @@ fun MLClassifierCard(
         colors = CardDefaults.cardColors(
             containerColor = if (isElevated) colors.errorContainer.copy(alpha = 0.25f) else colors.surfaceContainerLow
         ),
-        border = BorderStroke(1.dp, if (isElevated) colors.error.copy(alpha = 0.5f) else colors.outlineVariant)
+        border = BorderStroke(1.dp, if (isElevated) colors.error.copy(alpha = 0.5f) else colors.outlineVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             // Header Row
@@ -108,45 +117,40 @@ fun MLClassifierCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
+                Surface(
+                    shape = CircleShape,
+                    color = if (isElevated) colors.errorContainer else colors.primaryContainer,
+                    modifier = Modifier.size(40.dp)
                 ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = if (isElevated) colors.errorContainer else colors.primaryContainer,
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = if (isElevated) Icons.Default.Warning else Icons.Default.CheckCircle,
-                                contentDescription = null,
-                                tint = if (isElevated) colors.onErrorContainer else colors.onPrimaryContainer,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "ML Behavioral Risk Classifier",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = "Random Forest ONNX Model",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = colors.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = if (isElevated) Icons.Default.Warning else Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = if (isElevated) colors.onErrorContainer else colors.onPrimaryContainer,
+                            modifier = Modifier.size(22.dp)
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(10.dp))
+
+                Column(modifier = Modifier.weight(1f).padding(end = 6.dp)) {
+                    Text(
+                        text = "ML Behavioral Risk Classifier",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.onSurface,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "Random Forest ONNX Model",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = colors.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
 
                 PillBadge(
                     text = if (isElevated) "ELEVATED ($pct%)" else "NORMAL ($pct%)",
@@ -175,11 +179,26 @@ fun MLClassifierCard(
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Normal Zone (0-49%)", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = colors.primary)
-                    Text("Threshold (50%)", style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
-                    Text("Elevated Risk (50-100%)", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = colors.error)
+                    Text(
+                        text = "Normal 0-49%",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.primary
+                    )
+                    Text(
+                        text = "50% Cutoff",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = colors.onSurfaceVariant
+                    )
+                    Text(
+                        text = "Elevated 50-100%",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.error
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -215,19 +234,24 @@ fun MLClassifierCard(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = "Predicted Class: ${prediction.riskLevel}",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = accent
+                        color = accent,
+                        maxLines = 1,
+                        softWrap = false
                     )
                     Text(
                         text = "Risk Probability: $pct%",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = colors.onSurface
+                        color = colors.onSurface,
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
             }
@@ -244,19 +268,218 @@ fun MLClassifierCard(
                 color = colors.onSurfaceVariant
             )
 
-            if (isElevated) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Button(
-                    onClick = onNavigateToRag,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = colors.error)
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Ask AI for a Personalised Action Plan", fontWeight = FontWeight.Bold)
+            // ------------------- DYNAMIC ADVICE & ACTION CARD -------------------
+            Spacer(modifier = Modifier.height(16.dp))
+
+            val isSlipping = trajectory == Trajectory.SLIPPING
+            val isImproving = trajectory == Trajectory.IMPROVING
+
+            val advice = when {
+                // SCENARIO 3: Both Negative (Risk ELEVATED + Trajectory SLIPPING)
+                isElevated && isSlipping -> AdviceConfig(
+                    title = "⚠️ High Alert: Elevated Risk & Slipping Trajectory",
+                    message = "Both your screen time trajectory is slipping (+10% increase) AND your Random Forest risk score is ELEVATED ($pct%). Your digital habits show high risk of compulsive distraction.",
+                    bg = colors.errorContainer,
+                    border = colors.error,
+                    icon = Icons.Default.Warning,
+                    iconTint = colors.onErrorContainer,
+                    showBtn = true,
+                    btnLabel = "Start Urgent AI Sidekick Session",
+                    btnColor = colors.error
+                )
+
+                // SCENARIO 3 (ALT): Risk ELEVATED but Trajectory Steady/Improving
+                isElevated -> AdviceConfig(
+                    title = "⚠️ Elevated Risk Level Detected",
+                    message = "Your 28-day behavioral pattern (session gaps, late-night visits, schedule conflicts) is classified as ELEVATED risk ($pct% probability). Work with AI to regain control.",
+                    bg = colors.errorContainer.copy(alpha = 0.3f),
+                    border = colors.error.copy(alpha = 0.7f),
+                    icon = Icons.Default.Warning,
+                    iconTint = colors.error,
+                    showBtn = true,
+                    btnLabel = "Ask AI for a Personalised Action Plan",
+                    btnColor = colors.error
+                )
+
+                // SCENARIO 2: Trajectory SLIPPING while Risk is still NORMAL
+                isSlipping -> AdviceConfig(
+                    title = "⚡ Caution: Trajectory Slipping",
+                    message = "Even though your risk score is currently in the NORMAL range ($pct%), your screen time trajectory is slipping compared to your baseline. Take proactive steps now before reaching Elevated risk.",
+                    bg = InkAmber.copy(alpha = 0.15f),
+                    border = InkAmber,
+                    icon = Icons.AutoMirrored.Filled.TrendingUp,
+                    iconTint = InkAmber,
+                    showBtn = true,
+                    btnLabel = "Discuss Personalised Plan with AI Sidekick",
+                    btnColor = InkAmber
+                )
+
+                // SCENARIO 1: Trajectory IMPROVING
+                isImproving -> AdviceConfig(
+                    title = "🌟 Great Progress! Trajectory Improving",
+                    message = "Great work! Your screen time trajectory is improving (>10% screen time reduction since you started). Regardless of your current risk score ($pct%), your positive momentum is building healthier habits.",
+                    bg = IceBlueContainer.copy(alpha = 0.5f),
+                    border = IceBlue.copy(alpha = 0.6f),
+                    icon = Icons.Default.ThumbUp,
+                    iconTint = IceBlue,
+                    showBtn = false,
+                    btnLabel = "Refine Strategy with AI Sidekick",
+                    btnColor = IceBlue
+                )
+
+                // DEFAULT: NORMAL & STEADY
+                else -> AdviceConfig(
+                    title = "💡 Balanced Usage Habits",
+                    message = "Your 28-day behavioral pattern is classified within the NORMAL range ($pct% risk probability). Maintain your sleep boundaries and timetable schedule to stay on track.",
+                    bg = colors.surfaceContainer,
+                    border = colors.outlineVariant,
+                    icon = Icons.Default.CheckCircle,
+                    iconTint = colors.primary,
+                    showBtn = false,
+                    btnLabel = "",
+                    btnColor = colors.primary
+                )
+            }
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = advice.bg),
+                border = BorderStroke(1.dp, advice.border)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(advice.icon, contentDescription = null, tint = advice.iconTint, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = advice.title,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.onSurface
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = advice.message,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.onSurface
+                    )
+                    if (advice.showBtn) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Button(
+                            onClick = onNavigateToRag,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = advice.btnColor)
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(advice.btnLabel, fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
             }
+
+            // ------------------- EXPLAINER ACCORDION CARD -------------------
+            Spacer(modifier = Modifier.height(14.dp))
+
+            var showExplainer by remember { mutableStateOf(false) }
+
+            OutlinedButton(
+                onClick = { showExplainer = !showExplainer },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(1.dp, colors.outlineVariant)
+            ) {
+                Icon(
+                    imageVector = if (showExplainer) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = if (showExplainer) "Hide Calculation Explainer" else "How is Risk Calculated?",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            AnimatedVisibility(visible = showExplainer) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp)
+                        .background(colors.surfaceContainer, RoundedCornerShape(18.dp))
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        text = "How Risk Score is Calculated",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "The on-device Random Forest model analyzes 37 features extracted from your 28-day behavioral tracking history:",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    ExplainerFeatureItem("🌙", "Late-Night Usage", "App opens & duration during your bedtime window (11 PM - 5 AM).")
+                    ExplainerFeatureItem("📚", "Academic Class Conflicts", "Opening monitored apps while scheduled in lectures.")
+                    ExplainerFeatureItem("⏱️", "Session Duration Spikes", "Visits lasting significantly longer than your median session.")
+                    ExplainerFeatureItem("🔄", "Re-Open Frequency", "Short inter-session gaps between consecutive unlocks.")
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                    HorizontalDivider(color = colors.outlineVariant)
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "Cutoff Threshold: 50% probability separates NORMAL (safe, <50%) from ELEVATED (at-risk, ≥50%) behavior.",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Medium,
+                        color = colors.primary
+                    )
+                }
+            }
+        }
+    }
+}
+
+private data class AdviceConfig(
+    val title: String,
+    val message: String,
+    val bg: Color,
+    val border: Color,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val iconTint: Color,
+    val showBtn: Boolean,
+    val btnLabel: String,
+    val btnColor: Color
+)
+
+@Composable
+private fun ExplainerFeatureItem(icon: String, title: String, desc: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Text(text = icon, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(end = 8.dp))
+        Column {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = desc,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

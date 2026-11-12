@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -23,22 +24,35 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import com.simulens.app.data.chat.ChatMessage
+import com.simulens.app.ui.components.InkAvatar
+import com.simulens.app.ui.components.PaperclipDoodle
+import com.simulens.app.ui.components.SquigglyDoodle
+import com.simulens.app.ui.components.highlighter
+import com.simulens.app.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ChatScreen(
     viewModel: ChatViewModel,
-    onNavigateBack: () -> Unit,
-    topic: InterventionTopic = InterventionTopic.GENERAL
+    onNavigateBack: () -> Unit = {},
+    topic: InterventionTopic = InterventionTopic.GENERAL,
+    showBackButton: Boolean = true,
+    username: String = "S"
 ) {
     val state by viewModel.state.collectAsState()
-    val colors = MaterialTheme.colorScheme
     val listState = rememberLazyListState()
     var input by remember { mutableStateOf("") }
     var showClearConfirm by remember { mutableStateOf(false) }
@@ -48,7 +62,7 @@ fun ChatScreen(
     val last = state.messages.lastOrNull()
     val followUps = if (
         !state.sending && last != null && !last.fromUser && last.mode != Mode.CRISIS
-    ) state.remainingPrompts.take(3) else emptyList()
+    ) state.remainingPrompts.take(4) else emptyList()
 
     val itemCount = if (state.messages.isEmpty()) 2
     else state.messages.size + (if (state.sending) 1 else 0) + (if (followUps.isNotEmpty()) 1 else 0)
@@ -60,8 +74,9 @@ fun ChatScreen(
     if (showClearConfirm) {
         AlertDialog(
             onDismissRequest = { showClearConfirm = false },
-            title = { Text("Clear Chat History", fontWeight = FontWeight.Bold) },
-            text = { Text("Are you sure you want to delete all saved chat messages? Messages older than 6 days are cleaned up automatically.") },
+            containerColor = InkSurface,
+            title = { Text("Clear Chat History", fontWeight = FontWeight.Bold, color = InkTextPrimary) },
+            text = { Text("Are you sure you want to delete all saved chat messages?", color = InkTextSecondary) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -69,115 +84,159 @@ fun ChatScreen(
                         showClearConfirm = false
                     }
                 ) {
-                    Text("Clear All", color = colors.error, fontWeight = FontWeight.Bold)
+                    Text("Clear All", color = RiskHigh, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showClearConfirm = false }) {
-                    Text("Cancel")
+                    Text("Cancel", color = InkTextSecondary)
                 }
             }
         )
     }
 
     Scaffold(
-        containerColor = colors.background,
+        containerColor = InkBackground,
         topBar = {
             TopAppBar(
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Surface(
-                            shape = CircleShape,
-                            color = colors.primaryContainer,
-                            modifier = Modifier.size(36.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.SmartToy,
-                                    contentDescription = null,
-                                    tint = colors.onPrimaryContainer,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
-                        Spacer(Modifier.width(10.dp))
-                        Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                            Text(
+                                "Your friendly focus sidekick",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = InkTextSecondary
+                            )
+                            Spacer(Modifier.height(2.dp))
                             Text(
                                 "Simulens AI",
-                                style = MaterialTheme.typography.titleMedium,
+                                style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
-                                color = colors.onBackground
+                                color = InkTextPrimary,
+                                modifier = Modifier.highlighter()
                             )
-                            Text(
-                                "Your Friendly Focus Sidekick ✨",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = colors.onSurfaceVariant
-                            )
+                        }
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.wrapContentWidth()
+                        ) {
+                            SquigglyDoodle(color = IceBlue, modifier = Modifier.padding(end = 12.dp))
+                            InkAvatar(initial = username.ifBlank { "S" }, size = 34.dp)
+                            if (state.messages.isNotEmpty()) {
+                                Spacer(Modifier.width(8.dp))
+                                IconButton(onClick = { showClearConfirm = true }) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = "Clear History",
+                                        tint = InkTextMuted,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = colors.onBackground)
-                    }
-                },
-                actions = {
-                    if (state.messages.isNotEmpty()) {
-                        IconButton(onClick = { showClearConfirm = true }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Clear History", tint = colors.error)
+                    if (showBackButton) {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = InkTextPrimary)
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = colors.background)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = InkBackground)
             )
         },
         bottomBar = {
             Surface(
-                color = colors.surfaceContainerLow,
+                color = InkSurfaceLow,
                 tonalElevation = 6.dp,
-                shadowElevation = 8.dp,
-                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                border = BorderStroke(1.dp, InkBorder)
             ) {
                 Column(
                     modifier = Modifier
                         .navigationBarsPadding()
                         .imePadding()
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .padding(horizontal = 16.dp, vertical = 10.dp)
                 ) {
                     state.error?.let {
                         Text(
                             text = it,
                             style = MaterialTheme.typography.labelMedium,
-                            color = colors.error,
+                            color = RiskHigh,
                             modifier = Modifier.padding(bottom = 6.dp, start = 4.dp)
                         )
                     }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        // Amber search / sparkle icon
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(42.dp)
+                                .clip(CircleShape)
+                                .background(InkAmber)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                                tint = InkOnAmber,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
+                        Spacer(Modifier.width(10.dp))
+
                         OutlinedTextField(
                             value = input,
-                            onValueChange = { input = it.take(1000); if (state.error != null) viewModel.dismissError() },
-                            placeholder = { Text("Ask about social media & your habits...") },
+                            onValueChange = {
+                                input = it.take(1000)
+                                if (state.error != null) viewModel.dismissError()
+                            },
+                            placeholder = {
+                                Text(
+                                    "Ask about social media & your habits",
+                                    color = InkTextMuted,
+                                    fontSize = 14.sp
+                                )
+                            },
                             shape = RoundedCornerShape(24.dp),
-                            maxLines = 4,
+                            maxLines = 3,
                             modifier = Modifier.weight(1f),
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = colors.surfaceContainer,
-                                unfocusedContainerColor = colors.surfaceContainer,
-                                focusedBorderColor = colors.primary,
-                                unfocusedBorderColor = colors.outlineVariant
+                                focusedContainerColor = InkSurfaceHigh,
+                                unfocusedContainerColor = InkSurfaceHigh,
+                                focusedBorderColor = IceBlue,
+                                unfocusedBorderColor = InkBorder,
+                                focusedTextColor = InkTextPrimary,
+                                unfocusedTextColor = InkTextPrimary
                             )
                         )
-                        Spacer(Modifier.width(10.dp))
+
+                        Spacer(Modifier.width(8.dp))
+
                         FilledIconButton(
-                            onClick = { viewModel.send(input); input = "" },
+                            onClick = {
+                                viewModel.send(input)
+                                input = ""
+                            },
                             enabled = input.isNotBlank() && !state.sending,
-                            modifier = Modifier.size(50.dp),
+                            modifier = Modifier.size(44.dp),
                             colors = IconButtonDefaults.filledIconButtonColors(
-                                containerColor = colors.primary,
-                                contentColor = colors.onPrimary
+                                containerColor = InkAmber,
+                                contentColor = InkOnAmber,
+                                disabledContainerColor = InkSurfaceHigh,
+                                disabledContentColor = InkTextMuted
                             )
                         ) {
-                            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send", modifier = Modifier.size(20.dp))
+                            Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send", modifier = Modifier.size(18.dp))
                         }
                     }
                 }
@@ -186,12 +245,14 @@ fun ChatScreen(
     ) { padding ->
         LazyColumn(
             state = listState,
-            modifier = Modifier.fillMaxSize().padding(padding),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             item {
-                PersonalizationCard(
+                PersonalizationBanner(
                     isPersonalized = state.isPersonalized,
                     onToggle = { viewModel.togglePersonalization() },
                     summary = state.personalizedSummary
@@ -202,7 +263,7 @@ fun ChatScreen(
                 item { IntroCard(state.topic) }
                 item {
                     PromptList(
-                        title = "Suggested Questions to Ask",
+                        title = "Suggested Questions",
                         prompts = state.remainingPrompts,
                         onPick = viewModel::send,
                         enabled = !state.sending
@@ -226,16 +287,16 @@ fun ChatScreen(
                             .padding(8.dp)
                     ) {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.5.dp,
-                            color = colors.primary
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = IceBlue
                         )
                         Spacer(Modifier.width(12.dp))
                         Text(
                             "Analyzing scientific sources & generating response...",
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.SemiBold,
-                            color = colors.primary
+                            color = IceBlue
                         )
                     }
                 }
@@ -244,7 +305,7 @@ fun ChatScreen(
             if (followUps.isNotEmpty()) {
                 item {
                     PromptList(
-                        title = "You Could Also Ask",
+                        title = "Quick Follow-ups",
                         prompts = followUps,
                         onPick = viewModel::send,
                         enabled = true
@@ -256,40 +317,94 @@ fun ChatScreen(
 }
 
 @Composable
-private fun IntroCard(topic: InterventionTopic) {
-    val colors = MaterialTheme.colorScheme
-    Card(
-        modifier = Modifier.fillMaxWidth(),
+private fun PersonalizationBanner(
+    isPersonalized: Boolean,
+    onToggle: () -> Unit,
+    summary: String
+) {
+    Surface(
+        onClick = onToggle,
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
-        border = BorderStroke(1.dp, colors.outlineVariant)
+        color = InkSurface,
+        border = BorderStroke(1.dp, InkBorder),
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Column(Modifier.padding(20.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.AutoAwesome,
-                    contentDescription = null,
-                    tint = colors.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = if (topic != InterventionTopic.GENERAL) "Focus Notice Topic" else "Welcome to Simulens AI ✨",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = colors.primary,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            Spacer(Modifier.height(8.dp))
-            Text(topic.headline, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = colors.onSurface)
-            Spacer(Modifier.height(6.dp))
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .background(if (isPersonalized) IceBlue else InkTextMuted, CircleShape)
+            )
+            Spacer(Modifier.width(10.dp))
             Text(
-                "Replies draw from peer-reviewed scientific studies on digital wellbeing, with direct citations. " +
-                        "This provides educational insights, not medical or clinical diagnosis.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = colors.onSurfaceVariant
+                text = if (isPersonalized) {
+                    if (summary.isNotBlank()) summary else "Tuned to your check-in and your Gentle tone setting."
+                } else "Standard focus assistance mode.",
+                style = MaterialTheme.typography.bodySmall,
+                color = InkTextSecondary,
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = "Why?",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = IceBlue
             )
         }
+    }
+}
+
+@Composable
+private fun IntroCard(topic: InterventionTopic) {
+    Box(modifier = Modifier.fillMaxWidth()) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = InkSurface),
+            border = BorderStroke(1.dp, InkBorder)
+        ) {
+            Column(Modifier.padding(20.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                        tint = InkAmber,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = if (topic != InterventionTopic.GENERAL) "Focus Notice Topic" else "Simulens Sidekick ✨",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = InkAmber,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    topic.headline,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = InkTextPrimary
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "Replies draw from peer-reviewed scientific studies on digital wellbeing, with direct citations to help you build healthy digital habits.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = InkTextSecondary
+                )
+            }
+        }
+
+        PaperclipDoodle(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .offset(x = (-16).dp, y = (-10).dp)
+                .rotate(12f)
+        )
     }
 }
 
@@ -304,45 +419,32 @@ private fun PromptList(
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = title,
-            style = MaterialTheme.typography.titleSmall,
+            style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = InkTextSecondary,
             modifier = Modifier.padding(start = 4.dp, bottom = 2.dp)
         )
-        prompts.forEach { PromptCard(text = it, enabled = enabled, onClick = { onPick(it) }) }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun PromptCard(text: String, enabled: Boolean, onClick: () -> Unit) {
-    val colors = MaterialTheme.colorScheme
-    Surface(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = colors.surfaceContainerLow,
-        border = BorderStroke(1.dp, colors.outlineVariant)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(horizontal = 2.dp)
         ) {
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                color = colors.onSurface,
-                modifier = Modifier.weight(1f)
-            )
-            Spacer(Modifier.width(12.dp))
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = null,
-                tint = colors.primary,
-                modifier = Modifier.size(18.dp)
-            )
+            items(prompts) { prompt ->
+                Surface(
+                    onClick = { onPick(prompt) },
+                    enabled = enabled,
+                    shape = RoundedCornerShape(16.dp),
+                    color = InkSurfaceHigh,
+                    border = BorderStroke(1.dp, InkBorder)
+                ) {
+                    Text(
+                        text = prompt,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = InkTextPrimary,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp)
+                    )
+                }
+            }
         }
     }
 }
@@ -350,7 +452,6 @@ private fun PromptCard(text: String, enabled: Boolean, onClick: () -> Unit) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun MessageBubble(m: ChatMessage, onDelete: () -> Unit) {
-    val colors = MaterialTheme.colorScheme
     val uriHandler = LocalUriHandler.current
     val crisis = m.mode == Mode.CRISIS
 
@@ -358,8 +459,13 @@ private fun MessageBubble(m: ChatMessage, onDelete: () -> Unit) {
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = if (m.fromUser) Alignment.End else Alignment.Start
     ) {
-        val displayText = m.text.ifBlank {
+        val rawText = m.text.ifBlank {
             if (m.fromUser) "..." else "I'm here to help. Could you rephrase your question?"
+        }
+
+        val formattedText = remember(rawText, m.fromUser) {
+            if (m.fromUser) AnnotatedString(rawText)
+            else parseMarkdownToAnnotatedString(rawText)
         }
 
         Surface(
@@ -369,37 +475,27 @@ private fun MessageBubble(m: ChatMessage, onDelete: () -> Unit) {
                 bottomEnd = if (m.fromUser) 4.dp else 20.dp
             ),
             color = when {
-                m.fromUser -> colors.primary
-                crisis -> colors.errorContainer
-                else -> colors.surfaceContainerLow
+                m.fromUser -> IceBlue
+                crisis -> RiskHighBg
+                else -> InkSurface
             },
             border = when {
                 m.fromUser -> null
-                crisis -> BorderStroke(1.dp, colors.error)
-                else -> BorderStroke(1.dp, colors.outlineVariant)
+                crisis -> BorderStroke(1.dp, RiskHigh)
+                else -> BorderStroke(1.dp, InkBorder)
             },
             modifier = Modifier.widthIn(max = 310.dp)
         ) {
-            Box(
-                modifier = if (m.fromUser) {
-                    Modifier.background(
-                        Brush.horizontalGradient(
-                            listOf(colors.primary, colors.secondary)
-                        )
-                    )
-                } else Modifier
-            ) {
-                Text(
-                    text = displayText,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = when {
-                        m.fromUser -> colors.onPrimary
-                        crisis -> colors.onErrorContainer
-                        else -> colors.onSurface
-                    },
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-                )
-            }
+            Text(
+                text = formattedText,
+                style = MaterialTheme.typography.bodyMedium,
+                color = when {
+                    m.fromUser -> Color.White
+                    crisis -> RiskHigh
+                    else -> InkTextPrimary
+                },
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+            )
         }
 
         if (m.sources.isNotEmpty()) {
@@ -421,8 +517,8 @@ private fun MessageBubble(m: ChatMessage, onDelete: () -> Unit) {
                             )
                         },
                         colors = AssistChipDefaults.assistChipColors(
-                            containerColor = colors.primaryContainer,
-                            labelColor = colors.onPrimaryContainer
+                            containerColor = InkSurfaceHigh,
+                            labelColor = IceBlueLight
                         ),
                         shape = RoundedCornerShape(12.dp)
                     )
@@ -432,66 +528,80 @@ private fun MessageBubble(m: ChatMessage, onDelete: () -> Unit) {
     }
 }
 
-@Composable
-private fun PersonalizationCard(
-    isPersonalized: Boolean,
-    onToggle: () -> Unit,
-    summary: String
-) {
-    val colors = MaterialTheme.colorScheme
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isPersonalized) colors.primaryContainer.copy(alpha = 0.35f) else colors.surfaceContainerLow
-        ),
-        border = BorderStroke(1.dp, if (isPersonalized) colors.primary.copy(alpha = 0.5f) else colors.outlineVariant)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f)
-            ) {
-                Icon(
-                    imageVector = if (isPersonalized) Icons.Default.Psychology else Icons.Default.Lock,
-                    contentDescription = null,
-                    tint = if (isPersonalized) colors.primary else colors.onSurfaceVariant,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = if (isPersonalized) "Personalization Active" else "Personalization Off",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.onSurface
-                    )
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        text = if (isPersonalized) {
-                            if (summary.isNotBlank()) summary else "Uses BSMAS score & top focus struggles to tailor advice"
-                        } else "Standard research guidance mode",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
+private fun parseMarkdownToAnnotatedString(
+    markdown: String,
+    headingColor: Color = IceBlue
+): AnnotatedString {
+    return buildAnnotatedString {
+        val lines = markdown.split("\n")
+        lines.forEachIndexed { index, line ->
+            var trimmed = line.trim()
+            if (trimmed.isEmpty()) {
+                if (index < lines.size - 1) append("\n")
+                return@forEachIndexed
+            }
+
+            // Headings check (#, ##, ###)
+            val isHeading = trimmed.startsWith("#")
+            if (isHeading) {
+                trimmed = trimmed.replace(Regex("^#+\\s*"), "")
+            }
+
+            // Bullet points check (*, -, +)
+            val isBullet = trimmed.startsWith("* ") || trimmed.startsWith("- ") || trimmed.startsWith("+ ")
+            if (isBullet) {
+                trimmed = "•  " + trimmed.substring(2).trim()
+            }
+
+            // Pattern for **bold** or *italic*
+            val formatRegex = Regex("\\*\\*(.*?)\\*\\*|\\*(.*?)\\*|__(.*?)__|_(.*?)_")
+
+            var lastMatchEnd = 0
+            val matches = formatRegex.findAll(trimmed).toList()
+
+            if (isHeading) {
+                pushStyle(SpanStyle(fontWeight = FontWeight.Bold, color = headingColor, fontSize = 15.sp))
+            }
+
+            if (matches.isEmpty()) {
+                append(trimmed.replace("*", ""))
+            } else {
+                for (match in matches) {
+                    val prevText = trimmed.substring(lastMatchEnd, match.range.first).replace("*", "")
+                    append(prevText)
+
+                    val groupValues = match.groupValues
+                    val isBold = match.value.startsWith("**") || match.value.startsWith("__")
+                    val innerText = when {
+                        groupValues[1].isNotEmpty() -> groupValues[1]
+                        groupValues[2].isNotEmpty() -> groupValues[2]
+                        groupValues[3].isNotEmpty() -> groupValues[3]
+                        groupValues[4].isNotEmpty() -> groupValues[4]
+                        else -> match.value.replace("*", "").replace("_", "")
+                    }
+
+                    if (isBold) {
+                        pushStyle(SpanStyle(fontWeight = FontWeight.Bold))
+                    } else {
+                        pushStyle(SpanStyle(fontStyle = FontStyle.Italic))
+                    }
+                    append(innerText)
+                    pop()
+
+                    lastMatchEnd = match.range.last + 1
+                }
+                if (lastMatchEnd < trimmed.length) {
+                    append(trimmed.substring(lastMatchEnd).replace("*", ""))
                 }
             }
-            Spacer(Modifier.width(8.dp))
-            Switch(
-                checked = isPersonalized,
-                onCheckedChange = { onToggle() },
-                thumbContent = {
-                    if (isPersonalized) {
-                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(12.dp))
-                    }
-                }
-            )
+
+            if (isHeading) {
+                pop()
+            }
+
+            if (index < lines.size - 1) {
+                append("\n")
+            }
         }
     }
 }

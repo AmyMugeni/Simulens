@@ -177,25 +177,6 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
-    /** Resets all database tables and sets up profile fresh for Amy Mugeni. Dev tooling only. */
-    fun resetAccountForAmyMugeni(onSuccess: () -> Unit) {
-        viewModelScope.launch {
-            val db = SimulensDatabase.getDatabase(getApplication())
-            db.behavioralSessionDao().deleteAllSessions()
-            db.dailyTrackingCoverageDao().deleteAllCoverageRecords()
-            db.interventionLogDao().clearAllLogs()
-            db.timetableDao().clearTimetable()
-            db.bsmasResultDao().deleteAll()
-            repository.clearAllData()
-            val amyProfile = UserProfile(username = "Amy Mugeni")
-            repository.saveUserProfile(amyProfile)
-            _userProfile.value = amyProfile
-            _bsmasAnswers.value = IntArray(6) { 0 }
-            _isBsmasCompleted.value = false
-            onSuccess()
-        }
-    }
-
     companion object {
         val BSMAS_QUESTIONS = listOf(
             "You spend a lot of time thinking about social media or planning how to use it.",

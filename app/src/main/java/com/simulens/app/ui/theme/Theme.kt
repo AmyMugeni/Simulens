@@ -1,93 +1,74 @@
 package com.simulens.app.ui.theme
 
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
+import android.app.Activity
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 
-private val LightColors = lightColorScheme(
-    primary = PrimaryIndigo,
-    onPrimary = Color.White,
-    primaryContainer = PrimaryIndigoContainerLight,
-    onPrimaryContainer = OnPrimaryIndigoContainerLight,
-    secondary = SecondaryTeal,
-    onSecondary = Color.White,
-    secondaryContainer = SecondaryTealContainerLight,
-    onSecondaryContainer = OnSecondaryTealContainerLight,
-    tertiary = TertiaryCoral,
-    onTertiary = Color.White,
-    tertiaryContainer = TertiaryCoralContainerLight,
-    onTertiaryContainer = OnTertiaryCoralContainerLight,
-    background = LightBackground,
-    onBackground = LightOnBackground,
-    surface = LightBackground,
-    onSurface = LightOnBackground,
-    surfaceVariant = LightSurfaceVariant,
-    onSurfaceVariant = LightOnSurfaceVariant,
-    surfaceContainerLowest = Color.White,
-    surfaceContainerLow = LightSurfaceLow,
-    surfaceContainer = LightSurfaceContainer,
-    surfaceContainerHigh = LightSurfaceHigh,
-    outline = LightOutline,
-    outlineVariant = LightOutlineVariant,
-    error = ErrorLight,
-    errorContainer = ErrorContainerLight
-)
+// ============================================================================
+// Option 1: Ice and Ink (Dark) Signature Theme
+// Enforced across all devices and Android versions (light mode overridden)
+// ============================================================================
 
 private val DarkColors = darkColorScheme(
-    primary = PrimaryIndigoDark,
-    onPrimary = Color(0xFF0F172A),
-    primaryContainer = PrimaryIndigoContainerDark,
-    onPrimaryContainer = OnPrimaryIndigoContainerDark,
-    secondary = SecondaryTealDark,
-    onSecondary = Color(0xFF0F172A),
-    secondaryContainer = SecondaryTealContainerDark,
-    onSecondaryContainer = OnSecondaryTealContainerDark,
-    tertiary = TertiaryCoralDark,
-    onTertiary = Color(0xFF0F172A),
-    tertiaryContainer = TertiaryCoralContainerDark,
-    onTertiaryContainer = OnTertiaryCoralContainerDark,
-    background = DarkBackground,
-    onBackground = DarkOnBackground,
-    surface = DarkBackground,
-    onSurface = DarkOnBackground,
-    surfaceVariant = DarkSurfaceVariant,
-    onSurfaceVariant = DarkOnSurfaceVariant,
-    surfaceContainerLowest = Color(0xFF090D16),
-    surfaceContainerLow = DarkSurfaceLow,
-    surfaceContainer = DarkSurfaceContainer,
-    surfaceContainerHigh = DarkSurfaceHigh,
-    outline = DarkOutline,
-    outlineVariant = DarkOutlineVariant,
+    primary = IceBlue,                 // #60A5FA
+    onPrimary = InkBackground,         // #0B1220
+    primaryContainer = InkSurfaceHigh,
+    onPrimaryContainer = IceBlueLight,
+    secondary = InkAmber,              // #FBBF24
+    onSecondary = InkOnAmber,          // #0B1220
+    secondaryContainer = IceBlueContainer,
+    onSecondaryContainer = IceBlueLight,
+    tertiary = InkAmber,
+    onTertiary = InkOnAmber,
+    background = InkBackground,        // #0B1220
+    onBackground = InkTextPrimary,     // #E6EEFF
+    surface = InkSurface,              // Playful lighter blue card surface #152642
+    onSurface = InkTextPrimary,        // #E6EEFF
+    surfaceVariant = InkSurfaceHigh,
+    onSurfaceVariant = InkTextSecondary,
+    surfaceContainerLowest = InkBackground,
+    surfaceContainerLow = InkSurfaceLow,
+    surfaceContainer = InkSurface,
+    surfaceContainerHigh = InkSurfaceHigh,
+    surfaceContainerHighest = InkSurfaceHighest,
+    outline = InkBorder,               // Glowing translucent blue border #60A5FA
+    outlineVariant = InkBorder,
     error = ErrorDark,
     errorContainer = ErrorContainerDark
 )
 
 @Composable
 fun SimulensTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Set to false by default to ensure our brand blend colors are reflected cleanly
+    // Permanently locked to false and true to enforce the Ice and Ink youth brand across all devices
+    darkTheme: Boolean = true,
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as? Activity)?.window
+            if (window != null) {
+                // Ensure system bars match the midnight ink aesthetic
+                window.statusBarColor = InkBackground.toArgb()
+                window.navigationBarColor = InkSurfaceLow.toArgb()
 
-        darkTheme -> DarkColors
-        else -> LightColors
+                // false = light/white icons for battery, clock, and wifi on top of dark ink background
+                val insetsController = WindowCompat.getInsetsController(window, view)
+                insetsController.isAppearanceLightStatusBars = false
+                insetsController.isAppearanceLightNavigationBars = false
+            }
+        }
     }
 
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = DarkColors,
         typography = Typography,
         content = content
     )

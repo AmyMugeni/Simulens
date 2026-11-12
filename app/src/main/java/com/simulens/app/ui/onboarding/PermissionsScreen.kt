@@ -16,6 +16,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,10 +29,14 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.compose.ui.draw.rotate
 import com.simulens.app.data.tracker.AppUsageTrackerService
 import com.simulens.app.data.tracker.PermissionUtils
-import com.simulens.app.ui.components.GradientButton
-import com.simulens.app.ui.components.PillBadge
+import com.simulens.app.ui.components.PaperclipDoodle
+import com.simulens.app.ui.components.SquigglyDoodle
+import com.simulens.app.ui.components.TapeDoodle
+import com.simulens.app.ui.components.highlighter
+import com.simulens.app.ui.theme.*
 
 @Composable
 fun PermissionsScreen(
@@ -67,18 +72,36 @@ fun PermissionsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(InkBackground)
             .systemBarsPadding()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp)
     ) {
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Header with Ice Blue Doodle
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Setup Permissions",
+                style = MaterialTheme.typography.labelLarge,
+                color = IceBlue,
+                fontWeight = FontWeight.Bold
+            )
+            SquigglyDoodle(color = IceBlue)
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
 
         Text(
             text = "Grant System Access",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
+            color = InkTextPrimary,
+            modifier = Modifier.highlighter()
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -86,7 +109,7 @@ fun PermissionsScreen(
         Text(
             text = "Simulens needs system access to detect compulsive app launches and display real-time focus interventions.",
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = InkTextSecondary
         )
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -146,7 +169,7 @@ fun PermissionsScreen(
             Text(
                 text = "Usage Access is required to continue.",
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = InkTextMuted,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -154,8 +177,8 @@ fun PermissionsScreen(
             )
         }
 
-        GradientButton(
-            text = "Continue",
+        // Primary Golden Amber Continue Button
+        Button(
             onClick = {
                 if (hasUsagePermission) {
                     val serviceIntent = Intent(context, AppUsageTrackerService::class.java)
@@ -164,9 +187,34 @@ fun PermissionsScreen(
                 onNavigateNext()
             },
             enabled = hasUsagePermission,
-            icon = Icons.AutoMirrored.Filled.ArrowForward,
-            modifier = Modifier.fillMaxWidth()
-        )
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = InkAmber,
+                contentColor = InkOnAmber,
+                disabledContainerColor = InkSurfaceHigh,
+                disabledContentColor = InkTextMuted
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(54.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "Continue",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.height(28.dp))
     }
@@ -180,41 +228,31 @@ private fun PermissionCard(
     isGranted: Boolean,
     onRequest: () -> Unit
 ) {
-    val colors = MaterialTheme.colorScheme
+    val containerColor = if (isGranted) InkSurfaceHigh.copy(alpha = 0.8f) else InkSurface
+    val borderColor = if (isGranted) RiskLow.copy(alpha = 0.5f) else InkBorder
 
-    val containerColor = if (isGranted) {
-        colors.primaryContainer.copy(alpha = 0.5f)
-    } else {
-        colors.surfaceContainerLow
-    }
-
-    val borderColor = if (isGranted) {
-        colors.primary
-    } else {
-        colors.outlineVariant
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = containerColor),
-        border = BorderStroke(width = if (isGranted) 1.5.dp else 1.dp, color = borderColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp)
+    Box(modifier = Modifier.fillMaxWidth()) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(22.dp),
+            colors = CardDefaults.cardColors(containerColor = containerColor),
+            border = BorderStroke(width = 1.dp, color = borderColor),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(22.dp)
+            ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(38.dp)
                         .background(
-                            color = if (isGranted) colors.primary else colors.secondaryContainer,
+                            color = if (isGranted) RiskLow.copy(alpha = 0.2f) else InkSurfaceHigh,
                             shape = CircleShape
                         )
                 ) {
@@ -222,7 +260,7 @@ private fun PermissionCard(
                         Icon(
                             imageVector = Icons.Filled.Check,
                             contentDescription = "Permission Granted",
-                            tint = colors.onPrimary,
+                            tint = RiskLow,
                             modifier = Modifier.size(20.dp)
                         )
                     } else {
@@ -230,7 +268,7 @@ private fun PermissionCard(
                             text = step.toString(),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = colors.onSecondaryContainer
+                            color = InkTextPrimary
                         )
                     }
                 }
@@ -241,16 +279,24 @@ private fun PermissionCard(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = colors.onSurface,
+                    color = InkTextPrimary,
                     modifier = Modifier.weight(1f)
                 )
 
                 if (isGranted) {
-                    PillBadge(
-                        text = "Granted",
-                        containerColor = colors.primary,
-                        contentColor = colors.onPrimary
-                    )
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = RiskLow.copy(alpha = 0.15f),
+                        border = BorderStroke(1.dp, RiskLow.copy(alpha = 0.3f))
+                    ) {
+                        Text(
+                            text = "Granted",
+                            color = RiskLow,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
                 }
             }
 
@@ -259,28 +305,49 @@ private fun PermissionCard(
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodyMedium,
-                color = colors.onSurfaceVariant
+                color = InkTextSecondary
             )
 
-            if (!isGranted) {
-                Spacer(modifier = Modifier.height(16.dp))
 
-                Button(
-                    onClick = onRequest,
-                    modifier = Modifier.height(44.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = colors.primaryContainer,
-                        contentColor = colors.onPrimaryContainer
-                    )
-                ) {
-                    Text(
-                        text = "Enable Access",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold
-                    )
+                if (!isGranted) {
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Button(
+                        onClick = onRequest,
+                        modifier = Modifier.height(44.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = InkSurfaceHigh,
+                            contentColor = IceBlue
+                        ),
+                        border = BorderStroke(1.dp, IceBlue.copy(alpha = 0.4f))
+                    ) {
+                        Text(
+                            text = "Enable Access",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
-            }
+            } // Closes Column
+
+        } // ADD THIS: Closes Card
+
+        // Doodles are now direct children of Box
+        if (step == 1) {
+            TapeDoodle(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = (-16).dp, y = (-8).dp)
+                    .rotate(6f)
+            )
+        } else if (step == 2) {
+            PaperclipDoodle(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = (-16).dp, y = (-10).dp)
+                    .rotate(-12f)
+            )
         }
-    }
-}
+    } // Closes Box
+} // Closes PermissionCard

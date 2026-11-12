@@ -34,8 +34,11 @@ class RandomForestPredictor(context: Context, assetName: String = MODEL_ASSET) :
 
     init {
         try {
+            Log.d(TAG, "ONNX Init: Requesting OrtEnvironment...")
             val e = OrtEnvironment.getEnvironment()
+            Log.d(TAG, "ONNX Init: Reading asset '$assetName'...")
             val bytes = context.assets.open(assetName).use { it.readBytes() }
+            Log.d(TAG, "ONNX Init: Asset '$assetName' read successfully (${bytes.size} bytes). Creating session...")
             val s = e.createSession(bytes)
             val name = s.inputNames.first()
             val shape = (s.inputInfo[name]?.info as? TensorInfo)?.shape
@@ -47,18 +50,22 @@ class RandomForestPredictor(context: Context, assetName: String = MODEL_ASSET) :
             env = e
             session = s
             inputName = name
-            Log.i(TAG, "Successfully loaded $assetName: input '$name', expectedFeatures $expectedFeatures, outputs ${s.outputNames}")
+            Log.i(TAG, "[ONNX INIT SUCCESS] Asset: $assetName, inputName: '$name', expectedFeatures: $expectedFeatures, inputs: ${s.inputNames}, outputs: ${s.outputNames}")
+            s.outputInfo.forEach { (outName, outInfo) ->
+                Log.d(TAG, "  Output '$outName': info type=${outInfo.info?.javaClass?.simpleName}, valueInfo=${outInfo.info}")
+            }
         } catch (ex: Exception) {
             loadError = "Could not load $assetName: ${ex.message}"
-            Log.e(TAG, loadError, ex)
+            Log.e(TAG, "[ONNX INIT ERROR] $loadError", ex)
         }
     }
 
     fun predict(features: Map<String, Double?>): RiskPrediction? {
         val s = session
         val e = env
+        Log.d(TAG, "predict() called. isReady=$isReady, input features size=${features.size}")
         if (s == null || e == null) {
-            Log.w(TAG, "Model unavailable: $loadError")
+            Log.w(TAG, "predict() aborted: Model unavailable. loadError=$loadError")
             return null
         }
 
@@ -70,39 +77,91 @@ class RandomForestPredictor(context: Context, assetName: String = MODEL_ASSET) :
                 if (valFloat.isNaN() || valFloat.isInfinite()) 0.0f else valFloat
             }
 
+            Log.d(TAG, "Creating ONNX input tensor for '$inputName' with ${floatArray.size} float values...")
             OnnxTensor.createTensor(e, arrayOf(floatArray)).use { tensor ->
+                Log.d(TAG, "Executing ONNX session.run()...")
                 s.run(mapOf(inputName to tensor)).use { results ->
+                    Log.d(TAG, "ONNX session.run() finished. Result count=${results.count()}")
                     val p = readElevatedProbability(results)
                     if (p == null) {
-                        Log.e(TAG, "Could not read class probabilities from outputs ${s.outputNames}")
+                        Log.e(TAG, "[PREDICT ERROR] Could not read class probabilities from model outputs ${s.outputNames}")
                         null
                     } else {
-                        RiskPrediction(p, if (p >= THRESHOLD) "ELEVATED" else "NORMAL")
+                        val pred = RiskPrediction(p, if (p >= THRESHOLD) "ELEVATED" else "NORMAL")
+                        Log.i(TAG, "[PREDICT SUCCESS] Probability=${p}, RiskLevel=${pred.riskLevel}")
+                        pred
                     }
                 }
             }
         } catch (ex: Exception) {
-            Log.e(TAG, "Inference failed", ex)
+            Log.e(TAG, "[PREDICT EXCEPTION] Inference failed", ex)
             null
         }
     }
 
     /**
      * Handles both ways a converted forest can return probabilities:
-     * a float tensor [1, 2] (ZipMap disabled), or a list of maps keyed by class (ZipMap enabled).
+     * a float tensor [1, 2] (ZipMap disabled), or a list of maps keyed by class (ZipMap enabled via ONNXMap).
      */
     private fun readElevatedProbability(results: OrtSession.Result): Double? {
+        var entryIndex = 0
         for (entry in results) {
-            when (val v = entry.value.value) {
+            val rawValue = entry.value.value
+            val valClass = rawValue?.javaClass?.name ?: "null"
+            Log.d(TAG, "  Output [$entryIndex] key='${entry.key}', type=$valClass, value=$rawValue")
+            entryIndex++
+
+            when (rawValue) {
                 is Array<*> -> {
-                    val row = v.firstOrNull()
-                    if (row is FloatArray && row.size >= 2) return row[1].toDouble()
-                    if (row is DoubleArray && row.size >= 2) return row[1]
+                    Log.d(TAG, "    Output is Array of size ${rawValue.size}")
+                    val row = rawValue.firstOrNull()
+                    Log.d(TAG, "    Row first item type=${row?.javaClass?.name}")
+                    if (row is FloatArray && row.size >= 2) {
+                        Log.d(TAG, "    Found FloatArray in Array with values: ${row.joinToString()}")
+                        return row[1].toDouble()
+                    }
+                    if (row is DoubleArray && row.size >= 2) {
+                        Log.d(TAG, "    Found DoubleArray in Array with values: ${row.joinToString()}")
+                        return row[1]
+                    }
                 }
                 is List<*> -> {
-                    val m = v.firstOrNull() as? Map<*, *>
-                    val p = (m?.get(1L) ?: m?.get(1) ?: m?.get("1")) as? Number
-                    if (p != null) return p.toDouble()
+                    Log.d(TAG, "    Output is List of size ${rawValue.size}")
+                    val firstItem = rawValue.firstOrNull()
+                    Log.d(TAG, "    List first item type=${firstItem?.javaClass?.name}")
+
+                    val map: Map<*, *>? = when (firstItem) {
+                        is ai.onnxruntime.OnnxMap -> firstItem.value
+                        is Map<*, *> -> firstItem
+                        else -> null
+                    }
+
+                    Log.d(TAG, "    Extracted Map contents: $map")
+                    if (map != null) {
+                        val p = (map[1L] ?: map[1] ?: map["1"]) as? Number
+                        if (p != null) {
+                            Log.d(TAG, "    Found probability value from Map: $p")
+                            return p.toDouble()
+                        }
+                    }
+                }
+                is ai.onnxruntime.OnnxMap -> {
+                    val map = rawValue.value
+                    Log.d(TAG, "    Extracted direct OnnxMap contents: $map")
+                    if (map != null) {
+                        val p = (map[1L] ?: map[1] ?: map["1"]) as? Number
+                        if (p != null) {
+                            Log.d(TAG, "    Found probability value from direct OnnxMap: $p")
+                            return p.toDouble()
+                        }
+                    }
+                }
+                is Map<*, *> -> {
+                    val p = (rawValue[1L] ?: rawValue[1] ?: rawValue["1"]) as? Number
+                    if (p != null) {
+                        Log.d(TAG, "    Found probability value from direct Map: $p")
+                        return p.toDouble()
+                    }
                 }
             }
         }
