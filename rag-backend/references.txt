@@ -5,3 +5,32 @@
 #
 # https://example.org/open-access-paper.pdf | Author (2022) Title of the paper
 # https://example.org/guidance-page | Organisation guidance on screen time
+
+# ===== CAUSES & RISK FACTORS =====
+https://www.frontiersin.org/journals/psychiatry/articles/10.3389/fpsyt.2022.1106004/epub | Weinstein (2023) Problematic Social Networking Site use: effects on mental health and the brain (Frontiers in Psychiatry)
+https://www.ncbi.nlm.nih.gov/pmc/articles/PMC12459768/ | Zhang et al. (2025) Social media addiction and anxiety, depression, FoMO, loneliness, self-esteem in students: systematic review & meta-analysis (PLOS ONE)
+https://psychiatry-psychopharmacology.com/en/social-media-addiction-loneliness-and-fear-of-missing-out-a-meta-analysis-and-directions-for-future-research-133374 | Kılınçel et al. (2025) Social media addiction, loneliness and fear of missing out: a meta-analysis (Psychiatry and Clinical Psychopharmacology)
+https://pmc.ncbi.nlm.nih.gov/articles/PMC9434056 | Rajesh & Rangaiah (2022) Personality traits and Facebook addiction: a meta-analysis (Heliyon)
+https://ijip.in/articles/mental-social-and-physical-health/ | Banodha & Saini (2025) Consequences of social media addiction: mental, social and physical health (Indian Journal of Psychology and Psychotherapy)
+https://pmc.ncbi.nlm.nih.gov/articles/PMC11730205/ | Social network sites as an archetype of techno-social stress: systematic review
+
+# ===== INTERVENTIONS & PERSONALIZED REDUCTION =====
+https://pmc.ncbi.nlm.nih.gov/articles/PMC10457695 | Plackett et al. (2023) Impact of social media use interventions on mental well-being: systematic review (JMIR)
+https://www.ncbi.nlm.nih.gov/pmc/articles/PMC12352025/ | Nagata et al. (2025) Problematic social media use interventions for mental health outcomes in adolescents (Current Psychiatry Reports)
+https://www.ncbi.nlm.nih.gov/pmc/articles/PMC12563152/ | Effectiveness of psychological treatments for problematic use of internet, video games, social media (2025 meta-analysis, IJERPH)
+https://link.springer.com/article/10.1007/s40894-026-00283-9 | Systematic review of CBT, mindfulness and peer-led interventions for adolescent social media, gaming and smartphone addiction
+https://pubmed.ncbi.nlm.nih.gov/39285845/ | Digital Detox and Well-Being (2024, Pediatrics)
+https://pmc.ncbi.nlm.nih.gov/articles/PMC11392003 | Impacts of digital social media detox for mental health: systematic review & meta-analysis (Narra J, 2024)
+https://www.ncbi.nlm.nih.gov/pmc/articles/PMC11871965/ | Digital detox strategies and mental health: scoping review of why, where and how
+https://www.frontiersin.org/journals/human-dynamics/articles/10.3389/fhumd.2025.1572587/full | Kolhe & Naik (2025) Digital detox as a means to enhance eudaimonic well-being (Frontiers in Human Dynamics)
+
+# ===== SCREEN-TIME LIMITS & APP-BASED INTERVENTIONS (practical evidence) =====
+https://pmc.ncbi.nlm.nih.gov/articles/PMC11846175/ | Smartphone screen time reduction improves mental health: randomized controlled trial (BMC Medicine, 2025)
+https://www.pubmed.gov/34938826/ | van Wezel et al. (2021) Does a 7-day restriction on social media improve cognitive functioning and emotional well-being? RCT (Addictive Behaviors Reports)
+https://heibib.ub.uni-heidelberg.de/search/Record/1982245468 | Mertens et al. (2026) Promoting self-regulated social media use with a customizable intervention app (Wellspent): RCT (JMIR mHealth)
+
+# ===== SLEEP =====
+https://cris.unibo.it/retrieve/e70877f0-9f3f-461a-b0f0-588f74a8c66c/1-s2.0-S0747563223001644-main.pdf | Pagano et al. (2023) Using digital media or sleeping...that is the question: meta-analysis on digital media use and unhealthy sleep in adolescence (Computers in Human Behavior)
+https://researchportalplus.anu.edu.au/en/publications/social-media-use-mental-health-and-sleep-a-systematic-review-with/ | Ahmed et al. Social media use, mental health and sleep: systematic review with meta-analyses
+https://www.ncbi.nlm.nih.gov/pmc/articles/PMC12840076/ | Ndubisi et al. (2025) Social media use and sleep quality in adolescents and young adults: scoping review of reviews (Children)
+https://www.ncbi.nlm.nih.gov/pmc/articles/PMC12652198/ | Impact of social media on adolescents' eating and sleeping habits: systematic review & meta-analysis (Healthcare, 2025)

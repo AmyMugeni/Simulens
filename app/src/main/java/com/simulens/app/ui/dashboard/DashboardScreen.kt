@@ -588,6 +588,7 @@ fun DashboardScreen(
                         AnchorCard(
                             anchor = anchor,
                             recent = state.recent,
+                            weeklyTotals = state.weeklyTotals,
                             bsmasNow = bsmasResult?.total,
                             spanDays = state.baselineSpanDays,
                             onReset = { viewModel.resetAnchor() }

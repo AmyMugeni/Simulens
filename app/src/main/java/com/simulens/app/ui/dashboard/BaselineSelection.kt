@@ -498,6 +498,7 @@ private fun BaselineCard(title: String, content: @Composable ColumnScope.() -> U
 fun AnchorCard(
     anchor: BaselineAnchorEntity?,
     recent: PeriodStats?,
+    weeklyTotals: List<WeekTotal> = emptyList(),
     bsmasNow: Int?,
     spanDays: Int,
     onReset: () -> Unit
@@ -530,11 +531,20 @@ fun AnchorCard(
             style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
         Spacer(Modifier.height(14.dp))
 
-        // Line Chart for "Since you started" trajectory
+        // Line Chart for "Since you started" trajectory using REAL weekly tracking data from Room DB
         val startMins = start.medianDailyMins
         val recentMins = recent.medianDailyMins
-        val midMins = (startMins + recentMins) / 2.0
-        val trajectoryPoints = listOf(startMins, (startMins * 0.95 + midMins * 0.05), midMins, recentMins)
+
+        val realWeeklyAverages = weeklyTotals.takeLast(6).map { week ->
+            if (week.partial) recentMins else (week.minutes / 7.0).coerceAtLeast(0.0)
+        }
+
+        val trajectoryPoints = if (realWeeklyAverages.size >= 2) {
+            listOf(startMins) + realWeeklyAverages.drop(1)
+        } else {
+            listOf(startMins, recentMins)
+        }
+
         val maxChartVal = (trajectoryPoints + startMins).maxOrNull()?.coerceAtLeast(30.0)?.times(1.2) ?: 180.0
 
         Column(

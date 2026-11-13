@@ -268,3 +268,59 @@ fun ActiveSessionBanner(
         }
     }
 }
+
+/**
+ * "Highlighter S" Brand Mark Logo Composable:
+ * Bold white "S" with translucent blue highlighter swipe behind it, and warm amber accent.
+ */
+@Composable
+fun HighlighterSLogo(
+    modifier: Modifier = Modifier,
+    size: Dp = 120.dp
+) {
+    Canvas(modifier = modifier.size(size)) {
+        val w = this.size.width
+        val scale = w / 108f
+
+        // 1. Translucent Ice Blue Highlighter Swipe (central safe zone)
+        val swipePath = Path().apply {
+            val left = 24f * scale
+            val top = 50f * scale
+            val right = 84f * scale
+            val bottom = 66f * scale
+            val rx = 7f * scale
+            addRoundRect(
+                androidx.compose.ui.geometry.RoundRect(
+                    left = left, top = top, right = right, bottom = bottom,
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(rx, rx)
+                )
+            )
+        }
+        drawPath(
+            path = swipePath,
+            color = IceBlue.copy(alpha = 0.55f)
+        )
+
+        // 2. Bold Rounded "S" Mark in White
+        val sPath = Path().apply {
+            moveTo(63f * scale, 38f * scale)
+            cubicTo(63f * scale, 32.5f * scale, 58.5f * scale, 28.5f * scale, 52f * scale, 28.5f * scale)
+            cubicTo(45.5f * scale, 28.5f * scale, 41f * scale, 32.5f * scale, 41f * scale, 38f * scale)
+            cubicTo(41f * scale, 47f * scale, 65f * scale, 45.5f * scale, 65f * scale, 56.5f * scale)
+            cubicTo(65f * scale, 63.5f * scale, 59.5f * scale, 68f * scale, 50f * scale, 68f * scale)
+            cubicTo(41.5f * scale, 68f * scale, 37f * scale, 62.5f * scale, 37f * scale, 56.5f * scale)
+        }
+        drawPath(
+            path = sPath,
+            color = Color.White,
+            style = Stroke(width = 8.5f * scale, cap = StrokeCap.Round, join = StrokeJoin.Round)
+        )
+
+        // 3. Amber Accent Dot
+        drawCircle(
+            color = InkAmber,
+            radius = 3.5f * scale,
+            center = Offset(71.5f * scale, 26f * scale)
+        )
+    }
+}
