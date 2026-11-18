@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -242,7 +243,10 @@ fun InterventionScreen(
     state.activePreviewNudge?.let { nudge ->
         NudgePreviewDialog(
             nudge = nudge,
-            onAccept = { viewModel.dismissPreviewNudge() },
+            onAccept = { chosenMins ->
+                InterventionActionReceiver.startBreak(context, nudge.packageName, chosenMins)
+                viewModel.dismissPreviewNudge()
+            },
             onSnooze = {
                 InterventionActionReceiver.snooze(context)
                 viewModel.dismissPreviewNudge()
@@ -434,9 +438,9 @@ private fun OverviewCard(
             Spacer(Modifier.height(18.dp))
 
             // 3-Column Stats Row
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                StatPill(Modifier.weight(1f), "TODAY", "$todayCount nudges", IceBlueContainer, IceBlue)
-                StatPill(Modifier.weight(1f), "7 DAYS", "$weekCount nudges", InkSurfaceHigh, InkAmber)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                StatPill(Modifier.weight(1f), "TODAY", if (todayCount == 1) "1 nudge" else "$todayCount nudges", IceBlueContainer, IceBlue)
+                StatPill(Modifier.weight(1f), "7 DAYS", if (weekCount == 1) "1 nudge" else "$weekCount nudges", InkSurfaceHigh, InkAmber)
                 StatPill(Modifier.weight(1f), "TOP APP", topAppName ?: "None", InkSurfaceHigh, InkTextPrimary)
             }
         }
@@ -458,23 +462,26 @@ private fun StatPill(
         border = BorderStroke(1.dp, InkBorder)
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 10.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
                 color = InkTextMuted,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
             Spacer(Modifier.height(4.dp))
             Text(
                 text = value,
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
                 color = fg,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                softWrap = true
             )
         }
     }
@@ -587,21 +594,51 @@ private fun EmptyInterventionState(hasAnyLogs: Boolean, onTestNudge: () -> Unit)
 @Composable
 private fun NudgePreviewDialog(
     nudge: NudgePreview,
-    onAccept: () -> Unit,
+    onAccept: (Long) -> Unit,
     onSnooze: () -> Unit,
     onDismiss: () -> Unit,
     onLearnMore: () -> Unit
 ) {
+    var selectedBreakMins by remember { mutableLongStateOf(15L) }
+    val breakOptions = listOf(5L, 15L, 30L, 60L)
+
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = InkSurface,
         title = {
-            Text(nudge.title, fontWeight = FontWeight.Bold, color = InkTextPrimary)
+            Text(nudge.title.ifBlank { "Nudge Protection" }, fontWeight = FontWeight.Bold, color = InkTextPrimary)
         },
         text = {
             Column {
                 Text(nudge.message, color = InkTextSecondary)
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(14.dp))
+                Text("Choose break duration:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = InkTextSecondary)
+                Spacer(Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    breakOptions.forEach { mins ->
+                        val selected = selectedBreakMins == mins
+                        Surface(
+                            onClick = { selectedBreakMins = mins },
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (selected) InkAmber else InkSurfaceHigh,
+                            border = BorderStroke(1.dp, if (selected) InkAmber else InkBorder),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 6.dp)) {
+                                Text(
+                                    text = "${mins}m",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (selected) InkOnAmber else InkTextPrimary
+                                )
+                            }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
                 TextButton(onClick = onLearnMore) {
                     Text("Chat with Sidekick \uD83E\uDD16", color = IceBlue, fontWeight = FontWeight.Bold)
                 }
@@ -609,10 +646,11 @@ private fun NudgePreviewDialog(
         },
         confirmButton = {
             Button(
-                onClick = onAccept,
-                colors = ButtonDefaults.buttonColors(containerColor = InkAmber, contentColor = InkOnAmber)
+                onClick = { onAccept(selectedBreakMins) },
+                colors = ButtonDefaults.buttonColors(containerColor = InkAmber, contentColor = InkOnAmber),
+                shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Take Break", fontWeight = FontWeight.Bold)
+                Text("Take ${selectedBreakMins}-min Break", fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {

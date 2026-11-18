@@ -5,6 +5,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -18,12 +19,17 @@ import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.android.gms.auth.GoogleAuthUtil
@@ -71,6 +77,8 @@ fun ProfileScreen(
     val calendarVm: CalendarSyncViewModel = viewModel(factory = CalendarSyncViewModel.factory(context))
     val calendarState by calendarVm.uiState.collectAsState()
     var showAddClassDialog by remember { mutableStateOf(false) }
+    var showEditUsernameDialog by remember { mutableStateOf(false) }
+    var tempUsername by remember(userProfile.username) { mutableStateOf(userProfile.username) }
 
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -193,518 +201,527 @@ fun ProfileScreen(
                 .padding(horizontal = 24.dp, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Ink Avatar Badge
-            InkAvatar(
-                initial = userProfile.username.ifBlank { "S" },
-                size = 92.dp
-            )
+            var selectedProfileTab by rememberSaveable { mutableIntStateOf(0) }
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Section 1: Identification
-            SectionHeader(title = "Personal Identification")
-
-            OutlinedTextField(
-                value = userProfile.username,
-                onValueChange = viewModel::updateUsername,
-                label = { Text("Username / Student ID") },
-                singleLine = true,
-                shape = RoundedCornerShape(16.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = colors.surfaceContainerLow,
-                    unfocusedContainerColor = colors.surfaceContainerLow,
-                    focusedBorderColor = colors.primary,
-                    unfocusedBorderColor = colors.outlineVariant,
-                    focusedLabelColor = colors.primary,
-                    unfocusedLabelColor = colors.onSurfaceVariant
-                ),
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(28.dp))
-
-            // Section 2: Circadian Rhythm
-            SectionHeader(title = "Circadian Rhythm")
-
-            TimePickerCard(
-                title = "Wake-Up Time",
-                time = userProfile.wakeUpTime,
-                onTimeChange = { newTime: LocalTime -> viewModel.updateWakeUpTime(newTime) }
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            TimePickerCard(
-                title = "Target Bedtime",
-                time = userProfile.sleepTime,
-                onTimeChange = { newTime: LocalTime -> viewModel.updateSleepTime(newTime) }
-            )
-
-            Spacer(modifier = Modifier.height(28.dp))
-
-            // Section 3: Google Calendar Academic Schedule
-            SectionHeader(title = "Academic Schedule (Google Calendar)")
-
+            // Profile Health Progress Bar Card
+            val completionPct = (viewModel.calculateCompletionPercentage() * 100).toInt().coerceIn(0, 100)
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(22.dp),
                 colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
-                border = BorderStroke(1.dp, colors.outlineVariant)
+                border = BorderStroke(1.dp, colors.outlineVariant),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
             ) {
-                Column(modifier = Modifier.padding(20.dp)) {
+                Column(modifier = Modifier.padding(18.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = if (calendarState.isConnected) "Google Account Connected" else "Google Calendar Sync",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.onSurface
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = if (calendarState.isConnected) {
-                                    calendarState.accountEmail ?: "Connected"
-                                } else {
-                                    "Offline Mode (Local Storage Only)"
-                                },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = colors.onSurfaceVariant
-                            )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f).padding(end = 8.dp)
+                        ) {
+                            // Avatar with Pencil Overlay Badge
+                            Box(
+                                modifier = Modifier.clickable {
+                                    tempUsername = userProfile.username
+                                    showEditUsernameDialog = true
+                                }
+                            ) {
+                                InkAvatar(initial = userProfile.username.ifBlank { "S" }, size = 46.dp)
+                                Surface(
+                                    shape = CircleShape,
+                                    color = InkAmber,
+                                    border = BorderStroke(1.dp, colors.background),
+                                    modifier = Modifier
+                                        .size(18.dp)
+                                        .align(Alignment.BottomEnd)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = Icons.Default.Edit,
+                                            contentDescription = "Edit Username",
+                                            tint = InkOnAmber,
+                                            modifier = Modifier.size(11.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(Modifier.width(12.dp))
+
+                            Column(modifier = Modifier.weight(1f).padding(end = 4.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = userProfile.username.ifBlank { "Student Profile" },
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.onSurface,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    IconButton(
+                                        onClick = {
+                                            tempUsername = userProfile.username
+                                            showEditUsernameDialog = true
+                                        },
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Edit,
+                                            contentDescription = "Edit Name",
+                                            tint = colors.primary,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = "Profile Health: $completionPct% Complete",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = colors.primary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
 
                         PillBadge(
-                            text = if (calendarState.isConnected) "ONLINE" else "OFFLINE",
-                            containerColor = if (calendarState.isConnected) colors.primaryContainer else colors.surfaceContainerHigh,
-                            contentColor = if (calendarState.isConnected) colors.onPrimaryContainer else colors.onSurfaceVariant
+                            text = "$completionPct%",
+                            containerColor = colors.primaryContainer,
+                            contentColor = colors.onPrimaryContainer
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(Modifier.height(12.dp))
 
-                    if (calendarState.isConnected) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            OutlinedButton(
-                                onClick = { calendarVm.syncCalendar() },
-                                enabled = !calendarState.isSyncing,
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                if (calendarState.isSyncing) {
-                                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                                } else {
-                                    Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(Modifier.width(6.dp))
-                                    Text("Sync Now")
-                                }
-                            }
+                    LinearProgressIndicator(
+                        progress = { completionPct / 100f },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                            .clip(CircleShape),
+                        color = colors.primary,
+                        trackColor = colors.surfaceContainerHigh
+                    )
+                }
+            }
 
-                            TextButton(
-                                onClick = { calendarVm.disconnectGoogleAccount() },
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Text("Disconnect", color = colors.error)
-                            }
-                        }
-                    } else {
-                        Button(
-                            onClick = {
-                                val webClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID
-                                val gsoBuilder = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                                    .requestEmail()
-                                    .requestScopes(
-                                        Scope("https://www.googleapis.com/auth/calendar.events"),
-                                        Scope("https://www.googleapis.com/auth/calendar")
-                                    )
-                                if (webClientId.isNotBlank()) {
-                                    gsoBuilder.requestIdToken(webClientId)
-                                }
-                                val client = GoogleSignIn.getClient(context, gsoBuilder.build())
-                                googleSignInLauncher.launch(client.signInIntent)
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
-                        ) {
-                            Icon(Icons.Default.AccountCircle, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text("Connect Google Account", fontWeight = FontWeight.Bold)
-                        }
-                    }
+            Spacer(modifier = Modifier.height(18.dp))
 
-                    Spacer(modifier = Modifier.height(16.dp))
-                    HorizontalDivider(color = colors.outlineVariant)
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+            // Sub-Tab Segmented Navigation Bar with Border Boxes & Wrapped Text
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                val tabs = listOf(
+                    0 to "Habits &\nSleep",
+                    1 to "Schedule &\nApps",
+                    2 to "System &\nData"
+                )
+                tabs.forEach { (index, title) ->
+                    val selected = selectedProfileTab == index
+                    Surface(
+                        onClick = { selectedProfileTab = index },
+                        shape = RoundedCornerShape(14.dp),
+                        color = if (selected) colors.primary else colors.surfaceContainerLow,
+                        border = BorderStroke(1.5.dp, if (selected) colors.primary else colors.outlineVariant),
+                        modifier = Modifier.weight(1f),
+                        shadowElevation = if (selected) 4.dp else 0.dp
                     ) {
-                        Text(
-                            text = "Weekly Schedule (${calendarState.events.size}):",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.onSurface
-                        )
-
-                        IconButton(
-                            onClick = { showAddClassDialog = true },
+                        Box(
+                            contentAlignment = Alignment.Center,
                             modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .background(colors.secondaryContainer)
+                                .fillMaxWidth()
+                                .padding(horizontal = 4.dp, vertical = 10.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = "Add Class",
-                                tint = colors.onSecondaryContainer,
-                                modifier = Modifier.size(20.dp)
+                            Text(
+                                text = title,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (selected) colors.onPrimary else colors.onSurface,
+                                textAlign = TextAlign.Center,
+                                maxLines = 2,
+                                softWrap = true
                             )
                         }
                     }
+                }
+            }
 
-                    if (calendarState.events.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        calendarState.events.forEach { event ->
+            Spacer(modifier = Modifier.height(20.dp))
+
+            when (selectedProfileTab) {
+                0 -> {
+                    // ==================== SUB-TAB 0: HABITS & SLEEP ====================
+                    SectionHeader(title = "Personal Identification")
+
+                    OutlinedTextField(
+                        value = userProfile.username,
+                        onValueChange = viewModel::updateUsername,
+                        label = { Text("Username / Student ID") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(16.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = colors.surfaceContainerLow,
+                            unfocusedContainerColor = colors.surfaceContainerLow,
+                            focusedBorderColor = colors.primary,
+                            unfocusedBorderColor = colors.outlineVariant,
+                            focusedLabelColor = colors.primary,
+                            unfocusedLabelColor = colors.onSurfaceVariant
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    SectionHeader(title = "Circadian Rhythm")
+
+                    TimePickerCard(
+                        title = "Wake-Up Time",
+                        time = userProfile.wakeUpTime,
+                        onTimeChange = { newTime: LocalTime -> viewModel.updateWakeUpTime(newTime) }
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    TimePickerCard(
+                        title = "Target Bedtime",
+                        time = userProfile.sleepTime,
+                        onTimeChange = { newTime: LocalTime -> viewModel.updateSleepTime(newTime) }
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // Assessment Baseline (BSMAS)
+                    val bsmasAnswers by viewModel.bsmasAnswers.collectAsState()
+                    val bsmasHistory by viewModel.bsmasHistory.collectAsState()
+                    var isRetakeExpanded by remember { mutableStateOf(false) }
+                    var expandedHistoryId by remember { mutableStateOf<Long?>(null) }
+
+                    val currentResult = BsmasScoring.score(bsmasAnswers.toList())
+                    val currentBand = currentResult?.band ?: when {
+                        userProfile.bsmasScore <= 12 -> BsmasBand.LOWER
+                        userProfile.bsmasScore <= 18 -> BsmasBand.MODERATE
+                        else -> BsmasBand.ELEVATED
+                    }
+
+                    SectionHeader(title = "Assessment Baseline (BSMAS)")
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(22.dp),
+                        colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
+                        border = BorderStroke(1.dp, colors.outlineVariant),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(20.dp)) {
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp)
-                                    .background(colors.surfaceContainer, RoundedCornerShape(12.dp))
-                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    val dayAbbrev = event.dayOfWeek.take(3).uppercase()
-                                    PillBadge(
-                                        text = if (dayAbbrev.isNotBlank()) dayAbbrev else "CLASS",
-                                        containerColor = colors.primaryContainer,
-                                        contentColor = colors.onPrimaryContainer
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "BSMAS Risk Score",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.onSurface
                                     )
-                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "Bergen Social Media Addiction Scale baseline assessment",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = colors.onSurfaceVariant
+                                    )
+                                }
+
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text(
+                                        text = "${userProfile.bsmasScore} / 30",
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.onSurface
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    PillBadge(
+                                        text = currentBand.name,
+                                        containerColor = if (currentBand == BsmasBand.ELEVATED) colors.errorContainer else colors.primaryContainer,
+                                        contentColor = if (currentBand == BsmasBand.ELEVATED) colors.onErrorContainer else colors.onPrimaryContainer
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            Button(
+                                onClick = { isRetakeExpanded = !isRetakeExpanded },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (isRetakeExpanded) colors.secondaryContainer else colors.primary
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = if (isRetakeExpanded) Icons.Default.ExpandLess else Icons.Default.EditNote,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                    tint = if (isRetakeExpanded) colors.onSecondaryContainer else colors.onPrimary
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = if (isRetakeExpanded) "Hide Questionnaire Form" else "Retake Questionnaire Now",
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isRetakeExpanded) colors.onSecondaryContainer else colors.onPrimary
+                                )
+                            }
+
+                            if (isRetakeExpanded) {
+                                Spacer(modifier = Modifier.height(20.dp))
+                                HorizontalDivider(color = colors.outlineVariant)
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                Text(
+                                    text = "Answer all 6 questions (1 = Very Rarely, 5 = Very Often):",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.primary
+                                )
+
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                OnboardingViewModel.BSMAS_QUESTIONS.forEachIndexed { index, question ->
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 6.dp),
+                                        shape = RoundedCornerShape(16.dp),
+                                        colors = CardDefaults.cardColors(containerColor = colors.surfaceContainer),
+                                        border = BorderStroke(1.dp, colors.outlineVariant)
+                                    ) {
+                                        Column(modifier = Modifier.padding(14.dp)) {
+                                            Text(
+                                                text = "${index + 1}. $question",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = colors.onSurface
+                                            )
+                                            Spacer(modifier = Modifier.height(10.dp))
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                (1..5).forEach { value ->
+                                                    FilterChip(
+                                                        selected = bsmasAnswers.getOrElse(index) { 0 } == value,
+                                                        onClick = { viewModel.updateBsmasAnswer(index, value) },
+                                                        label = {
+                                                            Text(
+                                                                text = value.toString(),
+                                                                fontWeight = if (bsmasAnswers.getOrElse(index) { 0 } == value) FontWeight.Bold else FontWeight.Normal
+                                                            )
+                                                        },
+                                                        colors = FilterChipDefaults.filterChipColors(
+                                                            selectedContainerColor = colors.primary,
+                                                            selectedLabelColor = colors.onPrimary
+                                                        )
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                val calculatedScore = bsmasAnswers.sum()
+                                val calculatedResult = BsmasScoring.score(bsmasAnswers.toList())
+
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(colors.surfaceContainerHigh, RoundedCornerShape(14.dp))
+                                        .padding(16.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
                                     Column {
                                         Text(
-                                            text = event.summary,
-                                            style = MaterialTheme.typography.bodyMedium,
+                                            text = "Calculated Total: $calculatedScore / 30",
+                                            style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.Bold,
                                             color = colors.onSurface
                                         )
-                                        val locText = if (event.location.isNotBlank()) " • ${event.location}" else ""
                                         Text(
-                                            text = "${event.startTime} - ${event.endTime}$locText",
+                                            text = "Risk Band: ${calculatedResult?.band?.name ?: "Incomplete"}",
                                             style = MaterialTheme.typography.bodySmall,
                                             color = colors.onSurfaceVariant
                                         )
                                     }
-                                }
-                                IconButton(onClick = { calendarVm.deleteClassEvent(event.id) }) {
-                                    Icon(
-                                        Icons.Default.Delete,
-                                        contentDescription = "Delete",
-                                        tint = colors.error,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
 
-            Spacer(modifier = Modifier.height(28.dp))
-
-            // Section 4: Monitored Applications
-            SectionHeader(title = "Monitored Applications")
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
-                border = BorderStroke(1.dp, colors.outlineVariant)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            "Tracked Apps",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.onSurface
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            "Select which apps Simulens tracks",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = colors.onSurfaceVariant
-                        )
-                    }
-
-                    Button(
-                        onClick = onNavigateToAppSelection,
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
-                    ) {
-                        Text("Configure", fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(28.dp))
-
-            // Section 5: Assessment Baseline (BSMAS)
-            val bsmasAnswers by viewModel.bsmasAnswers.collectAsState()
-            val bsmasHistory by viewModel.bsmasHistory.collectAsState()
-            var isRetakeExpanded by remember { mutableStateOf(false) }
-            var expandedHistoryId by remember { mutableStateOf<Long?>(null) }
-
-            val currentResult = BsmasScoring.score(bsmasAnswers.toList())
-            val currentBand = currentResult?.band ?: when {
-                userProfile.bsmasScore <= 12 -> BsmasBand.LOWER
-                userProfile.bsmasScore <= 18 -> BsmasBand.MODERATE
-                else -> BsmasBand.ELEVATED
-            }
-
-            SectionHeader(title = "Assessment Baseline (BSMAS)")
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
-                border = BorderStroke(1.dp, colors.outlineVariant)
-            ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "BSMAS Risk Score",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.onSurface
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "Bergen Social Media Addiction Scale baseline assessment",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = colors.onSurfaceVariant
-                            )
-                        }
-
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(
-                                text = "${userProfile.bsmasScore} / 30",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.onSurface
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            PillBadge(
-                                text = currentBand.name,
-                                containerColor = if (currentBand == BsmasBand.ELEVATED) colors.errorContainer else colors.primaryContainer,
-                                contentColor = if (currentBand == BsmasBand.ELEVATED) colors.onErrorContainer else colors.onPrimaryContainer
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Button(
-                        onClick = { isRetakeExpanded = !isRetakeExpanded },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isRetakeExpanded) colors.secondaryContainer else colors.primary
-                        )
-                    ) {
-                        Icon(
-                            imageVector = if (isRetakeExpanded) Icons.Default.ExpandLess else Icons.Default.EditNote,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = if (isRetakeExpanded) colors.onSecondaryContainer else colors.onPrimary
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = if (isRetakeExpanded) "Hide Questionnaire Form" else "Retake Questionnaire Now",
-                            fontWeight = FontWeight.Bold,
-                            color = if (isRetakeExpanded) colors.onSecondaryContainer else colors.onPrimary
-                        )
-                    }
-
-                    if (isRetakeExpanded) {
-                        Spacer(modifier = Modifier.height(20.dp))
-                        HorizontalDivider(color = colors.outlineVariant)
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Text(
-                            text = "Answer all 6 questions (1 = Very Rarely, 5 = Very Often):",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.primary
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        OnboardingViewModel.BSMAS_QUESTIONS.forEachIndexed { index, question ->
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 6.dp),
-                                shape = RoundedCornerShape(16.dp),
-                                colors = CardDefaults.cardColors(containerColor = colors.surfaceContainer),
-                                border = BorderStroke(1.dp, colors.outlineVariant)
-                            ) {
-                                Column(modifier = Modifier.padding(14.dp)) {
-                                    Text(
-                                        text = "${index + 1}. $question",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = colors.onSurface
-                                    )
-                                    Spacer(modifier = Modifier.height(10.dp))
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
+                                    Button(
+                                        onClick = {
+                                            if (bsmasAnswers.all { it in 1..5 }) {
+                                                viewModel.recordNewBsmasAssessment(bsmasAnswers) {
+                                                    scope.launch {
+                                                        snackbarHostState.showSnackbar("New BSMAS assessment recorded & saved!")
+                                                    }
+                                                }
+                                                isRetakeExpanded = false
+                                            } else {
+                                                scope.launch {
+                                                    snackbarHostState.showSnackbar("Please answer all 6 questions before recording.")
+                                                }
+                                            }
+                                        },
+                                        shape = RoundedCornerShape(12.dp),
+                                        enabled = bsmasAnswers.all { it in 1..5 }
                                     ) {
-                                        (1..5).forEach { value ->
-                                            FilterChip(
-                                                selected = bsmasAnswers.getOrElse(index) { 0 } == value,
-                                                onClick = { viewModel.updateBsmasAnswer(index, value) },
-                                                label = {
-                                                    Text(
-                                                        text = value.toString(),
-                                                        fontWeight = if (bsmasAnswers.getOrElse(index) { 0 } == value) FontWeight.Bold else FontWeight.Normal
-                                                    )
-                                                },
-                                                colors = FilterChipDefaults.filterChipColors(
-                                                    selectedContainerColor = colors.primary,
-                                                    selectedLabelColor = colors.onPrimary
-                                                )
-                                            )
-                                        }
+                                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                                        Spacer(Modifier.width(6.dp))
+                                        Text("Record Assessment", fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
                         }
+                    }
 
+                    if (bsmasHistory.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        val calculatedScore = bsmasAnswers.sum()
-                        val calculatedResult = BsmasScoring.score(bsmasAnswers.toList())
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(colors.surfaceContainerHigh, RoundedCornerShape(14.dp))
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(22.dp),
+                            colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
+                            border = BorderStroke(1.dp, colors.outlineVariant),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                         ) {
-                            Column {
-                                Text(
-                                    text = "Calculated Total: $calculatedScore / 30",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.onSurface
-                                )
-                                Text(
-                                    text = "Risk Band: ${calculatedResult?.band?.name ?: "Incomplete"}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = colors.onSurfaceVariant
-                                )
-                            }
+                            Column(modifier = Modifier.padding(20.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.History,
+                                            contentDescription = null,
+                                            tint = colors.primary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "Assessment History (${bsmasHistory.size})",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = colors.onSurface
+                                        )
+                                    }
+                                }
 
-                            Button(
-                                onClick = {
-                                    if (bsmasAnswers.all { it in 1..5 }) {
-                                        viewModel.recordNewBsmasAssessment(bsmasAnswers) {
-                                            scope.launch {
-                                                snackbarHostState.showSnackbar("New BSMAS assessment recorded & saved!")
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                bsmasHistory.forEach { historyEntity ->
+                                    val scoreObj = BsmasScoring.score(historyEntity.items())
+                                    val isExpanded = expandedHistoryId == historyEntity.id
+
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 4.dp)
+                                            .background(colors.surfaceContainer, RoundedCornerShape(14.dp))
+                                            .padding(14.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = formatEpochMs(historyEntity.takenAtEpochMs),
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = colors.onSurface
+                                                )
+                                                Spacer(modifier = Modifier.height(2.dp))
+                                                Text(
+                                                    text = "Score: ${historyEntity.total} / 30",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = colors.onSurfaceVariant
+                                                )
+                                            }
+
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                val band = scoreObj?.band ?: BsmasBand.MODERATE
+                                                PillBadge(
+                                                    text = band.name,
+                                                    containerColor = if (band == BsmasBand.ELEVATED) colors.errorContainer else colors.primaryContainer,
+                                                    contentColor = if (band == BsmasBand.ELEVATED) colors.onErrorContainer else colors.onPrimaryContainer
+                                                )
+                                                IconButton(
+                                                    onClick = {
+                                                        expandedHistoryId = if (isExpanded) null else historyEntity.id
+                                                    }
+                                                ) {
+                                                    Icon(
+                                                        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                                        contentDescription = "Details",
+                                                        tint = colors.onSurfaceVariant
+                                                    )
+                                                }
                                             }
                                         }
-                                        isRetakeExpanded = false
-                                    } else {
-                                        scope.launch {
-                                            snackbarHostState.showSnackbar("Please answer all 6 questions before recording.")
+
+                                        if (isExpanded) {
+                                            Spacer(modifier = Modifier.height(10.dp))
+                                            HorizontalDivider(color = colors.outlineVariant)
+                                            Spacer(modifier = Modifier.height(10.dp))
+
+                                            OnboardingViewModel.BSMAS_QUESTIONS.forEachIndexed { idx, qText ->
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(vertical = 3.dp),
+                                                    horizontalArrangement = Arrangement.SpaceBetween
+                                                ) {
+                                                    Text(
+                                                        text = "Q${idx + 1}: ${qText.take(35)}...",
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = colors.onSurfaceVariant,
+                                                        modifier = Modifier.weight(1f)
+                                                    )
+                                                    Text(
+                                                        text = "${historyEntity.items().getOrElse(idx) { 0 }} / 5",
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = colors.onSurface
+                                                    )
+                                                }
+                                            }
                                         }
                                     }
-                                },
-                                shape = RoundedCornerShape(12.dp),
-                                enabled = bsmasAnswers.all { it in 1..5 }
-                            ) {
-                                Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text("Record Assessment", fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            if (bsmasHistory.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(16.dp))
+                1 -> {
+                    // ==================== SUB-TAB 1: SCHEDULE & APPS ====================
+                    SectionHeader(title = "Academic Schedule (Google Calendar)")
 
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
-                    border = BorderStroke(1.dp, colors.outlineVariant)
-                ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Row(
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        Card(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            shape = RoundedCornerShape(22.dp),
+                            colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
+                            border = BorderStroke(1.dp, colors.outlineVariant),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.History,
-                                    contentDescription = null,
-                                    tint = colors.primary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "Assessment History (${bsmasHistory.size})",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.onSurface
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        bsmasHistory.forEach { historyEntity ->
-                            val scoreObj = BsmasScoring.score(historyEntity.items())
-                            val isExpanded = expandedHistoryId == historyEntity.id
-
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp)
-                                    .background(colors.surfaceContainer, RoundedCornerShape(14.dp))
-                                    .padding(14.dp)
-                            ) {
+                            Column(modifier = Modifier.padding(20.dp)) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -712,77 +729,322 @@ fun ProfileScreen(
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                            text = formatEpochMs(historyEntity.takenAtEpochMs),
-                                            style = MaterialTheme.typography.bodyMedium,
+                                            text = if (calendarState.isConnected) "Google Account Connected" else "Google Calendar Sync",
+                                            style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.Bold,
                                             color = colors.onSurface
                                         )
-                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Spacer(modifier = Modifier.height(4.dp))
                                         Text(
-                                            text = "Score: ${historyEntity.total} / 30",
+                                            text = if (calendarState.isConnected) {
+                                                calendarState.accountEmail ?: "Connected"
+                                            } else {
+                                                "Offline Mode (Local Storage Only)"
+                                            },
                                             style = MaterialTheme.typography.bodySmall,
                                             color = colors.onSurfaceVariant
                                         )
                                     }
 
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        val band = scoreObj?.band ?: BsmasBand.MODERATE
-                                        PillBadge(
-                                            text = band.name,
-                                            containerColor = if (band == BsmasBand.ELEVATED) colors.errorContainer else colors.primaryContainer,
-                                            contentColor = if (band == BsmasBand.ELEVATED) colors.onErrorContainer else colors.onPrimaryContainer
-                                        )
-                                        IconButton(
-                                            onClick = {
-                                                expandedHistoryId = if (isExpanded) null else historyEntity.id
-                                            }
+                                    PillBadge(
+                                        text = if (calendarState.isConnected) "ONLINE" else "OFFLINE",
+                                        containerColor = if (calendarState.isConnected) colors.primaryContainer else colors.surfaceContainerHigh,
+                                        contentColor = if (calendarState.isConnected) colors.onPrimaryContainer else colors.onSurfaceVariant
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(14.dp))
+
+                                if (calendarState.isConnected) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        OutlinedButton(
+                                            onClick = { calendarVm.syncCalendar() },
+                                            enabled = !calendarState.isSyncing,
+                                            modifier = Modifier.weight(1f),
+                                            shape = RoundedCornerShape(12.dp)
                                         ) {
-                                            Icon(
-                                                imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                                contentDescription = "Details",
-                                                tint = colors.onSurfaceVariant
-                                            )
+                                            if (calendarState.isSyncing) {
+                                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                                            } else {
+                                                Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
+                                                Spacer(Modifier.width(6.dp))
+                                                Text("Sync Now")
+                                            }
                                         }
+
+                                        TextButton(
+                                            onClick = { calendarVm.disconnectGoogleAccount() },
+                                            shape = RoundedCornerShape(12.dp)
+                                        ) {
+                                            Text("Disconnect", color = colors.error)
+                                        }
+                                    }
+                                } else {
+                                    Button(
+                                        onClick = {
+                                            val webClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID
+                                            val gsoBuilder = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                                                .requestEmail()
+                                                .requestScopes(
+                                                    Scope("https://www.googleapis.com/auth/calendar.events"),
+                                                    Scope("https://www.googleapis.com/auth/calendar")
+                                                )
+                                            if (webClientId.isNotBlank()) {
+                                                gsoBuilder.requestIdToken(webClientId)
+                                            }
+                                            val client = GoogleSignIn.getClient(context, gsoBuilder.build())
+                                            googleSignInLauncher.launch(client.signInIntent)
+                                        },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
+                                    ) {
+                                        Icon(Icons.Default.AccountCircle, contentDescription = null, modifier = Modifier.size(18.dp))
+                                        Spacer(Modifier.width(8.dp))
+                                        Text("Connect Google Account", fontWeight = FontWeight.Bold)
                                     }
                                 }
 
-                                if (isExpanded) {
-                                    Spacer(modifier = Modifier.height(10.dp))
-                                    HorizontalDivider(color = colors.outlineVariant)
-                                    Spacer(modifier = Modifier.height(10.dp))
+                                Spacer(modifier = Modifier.height(16.dp))
+                                HorizontalDivider(color = colors.outlineVariant)
+                                Spacer(modifier = Modifier.height(14.dp))
 
-                                    OnboardingViewModel.BSMAS_QUESTIONS.forEachIndexed { idx, qText ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Weekly Schedule (${calendarState.events.size}):",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.onSurface
+                                    )
+
+                                    IconButton(
+                                        onClick = { showAddClassDialog = true },
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .clip(CircleShape)
+                                            .background(colors.secondaryContainer)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = "Add Class",
+                                            tint = colors.onSecondaryContainer,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+
+                                if (calendarState.events.isNotEmpty()) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    calendarState.events.forEach { event ->
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .padding(vertical = 3.dp),
-                                            horizontalArrangement = Arrangement.SpaceBetween
+                                                .padding(vertical = 4.dp)
+                                                .background(colors.surfaceContainer, RoundedCornerShape(12.dp))
+                                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text(
-                                                text = "Q${idx + 1}: ${qText.take(35)}...",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = colors.onSurfaceVariant,
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
                                                 modifier = Modifier.weight(1f)
-                                            )
-                                            Text(
-                                                text = "${historyEntity.items().getOrElse(idx) { 0 }} / 5",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                fontWeight = FontWeight.Bold,
-                                                color = colors.onSurface
-                                            )
+                                            ) {
+                                                val dayAbbrev = event.dayOfWeek.take(3).uppercase()
+                                                PillBadge(
+                                                    text = if (dayAbbrev.isNotBlank()) dayAbbrev else "CLASS",
+                                                    containerColor = colors.primaryContainer,
+                                                    contentColor = colors.onPrimaryContainer
+                                                )
+                                                Spacer(modifier = Modifier.width(10.dp))
+                                                Column {
+                                                    Text(
+                                                        text = event.summary,
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = colors.onSurface
+                                                    )
+                                                    val locText = if (event.location.isNotBlank()) " • ${event.location}" else ""
+                                                    Text(
+                                                        text = "${event.startTime} - ${event.endTime}$locText",
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = colors.onSurfaceVariant
+                                                    )
+                                                }
+                                            }
+                                            IconButton(onClick = { calendarVm.deleteClassEvent(event.id) }) {
+                                                Icon(
+                                                    Icons.Default.Delete,
+                                                    contentDescription = "Delete",
+                                                    tint = colors.error,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
                                         }
                                     }
                                 }
+                            }
+                        }
+
+                        PaperclipDoodle(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .offset(x = (-16).dp, y = (-10).dp)
+                                .rotate(12f)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    SectionHeader(title = "Monitored Applications")
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(22.dp),
+                        colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
+                        border = BorderStroke(1.dp, colors.outlineVariant),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    "Tracked Apps",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.onSurface
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    "Select which social & media apps Simulens monitors",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = colors.onSurfaceVariant
+                                )
+                            }
+
+                            Button(
+                                onClick = onNavigateToAppSelection,
+                                shape = RoundedCornerShape(14.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
+                            ) {
+                                Text("Configure", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+
+                2 -> {
+                    // ==================== SUB-TAB 2: SYSTEM & DATA ====================
+                    SectionHeader(title = "On-Device Privacy & Security")
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(22.dp),
+                        colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
+                        border = BorderStroke(1.dp, colors.outlineVariant),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(20.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .size(46.dp)
+                                    .background(colors.primaryContainer, CircleShape)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Shield,
+                                    contentDescription = "Privacy Shield",
+                                    tint = colors.primary,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(14.dp))
+
+                            Column {
+                                Text(
+                                    text = "Purely On-Device Processing",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.onSurface
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "100% of behavioral feature vectors and ML predictions are computed locally. Zero telemetry leaves your phone.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = colors.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    SectionHeader(title = "Account Management")
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(22.dp),
+                        colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
+                        border = BorderStroke(1.dp, colors.outlineVariant),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(20.dp)) {
+                            Text(
+                                text = "Sign Out & Reset App Data",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Clears all local database records, sessions, and profile data so you can sign out and sign back in fresh as yourself.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = colors.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            Button(
+                                onClick = {
+                                    viewModel.resetUserDatabaseAndSignOut {
+                                        onSignOut()
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(14.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = colors.error)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Reset App & Sign Out", fontWeight = FontWeight.Bold)
                             }
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(36.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
             GradientButton(
-                text = "Save All Changes",
+                text = "Save All Profile Changes",
                 onClick = {
                     viewModel.saveProfile {
                         scope.launch {
@@ -794,54 +1056,7 @@ fun ProfileScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(28.dp))
-
-            // Section 6: Account Management & Database Reset
-            SectionHeader(title = "Account Management")
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
-                border = BorderStroke(1.dp, colors.outlineVariant)
-            ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Text(
-                        text = "Sign Out & Reset App Data",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.onSurface
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Clears all local database records, sessions, and profile data so you can sign out and sign back in fresh as yourself.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Button(
-                        onClick = {
-                            viewModel.resetUserDatabaseAndSignOut {
-                                onSignOut()
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = colors.error)
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Reset App & Sign Out", fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 
@@ -857,6 +1072,58 @@ fun ProfileScreen(
                     onSuccess = { viewModel.updateTimetableStatus(true) }
                 )
                 showAddClassDialog = false
+            }
+        )
+    }
+
+    if (showEditUsernameDialog) {
+        AlertDialog(
+            onDismissRequest = { showEditUsernameDialog = false },
+            containerColor = InkSurface,
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Edit, contentDescription = null, tint = colors.primary, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Edit Username / ID", fontWeight = FontWeight.Bold, color = colors.onSurface)
+                }
+            },
+            text = {
+                Column {
+                    Text("Enter your name or student identifier:", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = tempUsername,
+                        onValueChange = { tempUsername = it },
+                        singleLine = true,
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = colors.surfaceContainerLow,
+                            unfocusedContainerColor = colors.surfaceContainerLow,
+                            focusedBorderColor = colors.primary,
+                            unfocusedBorderColor = colors.outlineVariant
+                        )
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.updateUsername(tempUsername)
+                        viewModel.saveProfile {
+                            scope.launch { snackbarHostState.showSnackbar("Username updated successfully") }
+                        }
+                        showEditUsernameDialog = false
+                    },
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Save", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditUsernameDialog = false }) {
+                    Text("Cancel", color = colors.onSurfaceVariant)
+                }
             }
         )
     }

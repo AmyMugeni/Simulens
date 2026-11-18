@@ -295,6 +295,11 @@ class AppUsageTrackerService : Service() {
 
         if (current == null) {
             if (activePkg != null && activePkg in monitoredApps) {
+                if (InterventionActionReceiver.isBreakActive(applicationContext, activePkg)) {
+                    enforceBreakLockout(activePkg)
+                    return
+                }
+
                 currentReopenIntervalMins = if (lastAnyMonitoredAppClosedTime > 0L) {
                     ((endTime - lastAnyMonitoredAppClosedTime) / 60_000f).coerceAtLeast(0f)
                 } else {
@@ -310,10 +315,21 @@ class AppUsageTrackerService : Service() {
         } else {
             // A monitored app session is currently active
             if (activePkg == current) {
+                if (InterventionActionReceiver.isBreakActive(applicationContext, current)) {
+                    enforceBreakLockout(current)
+                    return
+                }
+
                 val ongoingMins = ((endTime - sessionStartTime) / 60_000f).coerceAtLeast(0f)
                 Log.i("SimulensTracker", "ONGOING MONITORED SESSION: $current (${String.format("%.2f", ongoingMins)} min)")
                 evaluateRealtimeSession(current, ongoingMins, currentReopenIntervalMins)
             } else if (activePkg != null && activePkg in monitoredApps) {
+                if (InterventionActionReceiver.isBreakActive(applicationContext, activePkg)) {
+                    closeCurrentSession(endTime)
+                    enforceBreakLockout(activePkg)
+                    return
+                }
+
                 Log.i("SimulensTracker", "SWITCHED MONITORED APP: $current -> $activePkg")
                 closeCurrentSession(endTime)
 
@@ -332,6 +348,43 @@ class AppUsageTrackerService : Service() {
                 closeCurrentSession(endTime)
             }
         }
+    }
+
+    private fun enforceBreakLockout(packageName: String) {
+        val appLabel = labelFor(packageName)
+        val remainingMins = InterventionActionReceiver.getRemainingBreakMins(applicationContext, packageName)
+        val totalMins = InterventionActionReceiver.getOriginalBreakDurationMins(applicationContext, packageName)
+
+        Log.i("SimulensTracker", "Enforcing break lockout for $packageName: $remainingMins min remaining of $totalMins min break")
+
+        goHome(applicationContext)
+
+        val nudge = NudgePreview(
+            title = "Break in progress",
+            message = "Take a few more minutes to rest away from $appLabel. Your $totalMins-minute focus break is active ($remainingMins min remaining).",
+            packageName = packageName,
+            appName = appLabel,
+            reason = "BREAK_LOCKOUT",
+            contextLine = "$totalMins-minute break active",
+            appSub = "$appLabel is locked ($remainingMins min left)",
+            whyThis = "Break lockout active until timer expires.",
+            type = InterventionType.SCHEDULE_CONFLICT
+        )
+
+        serviceScope.launch(Dispatchers.Main) {
+            InterventionOverlay.show(applicationContext, nudge, respectSnooze = false) { action ->
+                if (action == OverlayAction.TAKE_BREAK) {
+                    goHome(applicationContext)
+                }
+            }
+        }
+    }
+
+    private fun goHome(context: Context) {
+        context.startActivity(
+            Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
     }
 
     private fun closeCurrentSession(endTimestamp: Long) {
@@ -423,12 +476,33 @@ class AppUsageTrackerService : Service() {
             }
 
             withContext(Dispatchers.Main) {
+                val appLabel = labelFor(packageName)
+                val contextStr = when (intervention.type) {
+                    InterventionType.SCHEDULE_CONFLICT -> intervention.detail
+                    InterventionType.SLEEP_WINDOW, InterventionType.WIND_DOWN, InterventionType.MORNING -> "Sleep window protection active"
+                    else -> "Daily screen time baseline check"
+                }
+                val subStr = when (intervention.type) {
+                    InterventionType.SCHEDULE_CONFLICT -> "$appLabel · Opened during class"
+                    InterventionType.SLEEP_WINDOW, InterventionType.WIND_DOWN, InterventionType.MORNING -> "$appLabel · Opened late at night"
+                    else -> "$appLabel · Visit running longer than usual"
+                }
+                val whyStr = when (intervention.type) {
+                    InterventionType.SCHEDULE_CONFLICT -> "Class focus active. Reopening apps during lectures breaks attention retention."
+                    InterventionType.SLEEP_WINDOW, InterventionType.WIND_DOWN -> "Rest protection active. Late night screen exposure disrupts sleep circadian rhythm."
+                    else -> "Session deviation detected against your established baseline. Sensitivity scaled by BSMAS assessment."
+                }
+
                 val nudge = NudgePreview(
                     title = intervention.title,
                     message = intervention.message,
                     packageName = packageName,
-                    appName = labelFor(packageName),
-                    reason = intervention.reason
+                    appName = appLabel,
+                    reason = intervention.reason,
+                    contextLine = contextStr,
+                    appSub = subStr,
+                    whyThis = whyStr,
+                    type = intervention.type
                 )
                 // respectSnooze = false: evaluateRealtimeSession already checked it.
                 val shown = intervention.type in overlayTypes &&

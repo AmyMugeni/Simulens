@@ -24,14 +24,18 @@ class InterventionActionReceiver : BroadcastReceiver() {
 
         const val EXTRA_LOG_ID = "log_id"
 
-        fun snooze(context: Context, mins: Long = 15L) {
+        const val SNOOZE_MINUTES = 15L
+        const val BREAK_MINUTES_DEFAULT = 15L
+        private const val SNOOZE_PREFS = "simulens_snooze_prefs"
+        private const val KEY_SNOOZED_UNTIL = "snoozed_until_ms"
+        private const val KEY_BREAK_UNTIL_PREFIX = "break_until_"
+        private const val KEY_CONSECUTIVE_DISMISSALS = "consecutive_dismissals"
+
+        fun snooze(context: Context, mins: Long = SNOOZE_MINUTES) {
             context.getSharedPreferences(SNOOZE_PREFS, Context.MODE_PRIVATE).edit()
                 .putLong(KEY_SNOOZED_UNTIL, System.currentTimeMillis() + mins * 60_000L)
                 .apply()
         }
-
-        private const val SNOOZE_PREFS = "simulens_snooze_prefs"
-        private const val KEY_SNOOZED_UNTIL = "snoozed_until_ms"
 
         fun getSnoozedUntilMs(context: Context): Long {
             val prefs = context.getSharedPreferences(SNOOZE_PREFS, Context.MODE_PRIVATE)
@@ -40,6 +44,42 @@ class InterventionActionReceiver : BroadcastReceiver() {
 
         fun isSnoozed(context: Context): Boolean {
             return System.currentTimeMillis() < getSnoozedUntilMs(context)
+        }
+
+        fun startBreak(context: Context, packageName: String, mins: Long = BREAK_MINUTES_DEFAULT) {
+            context.getSharedPreferences(SNOOZE_PREFS, Context.MODE_PRIVATE).edit()
+                .putLong("$KEY_BREAK_UNTIL_PREFIX$packageName", System.currentTimeMillis() + mins * 60_000L)
+                .putLong("${KEY_BREAK_UNTIL_PREFIX}${packageName}_duration", mins)
+                .apply()
+        }
+
+        fun getRemainingBreakMins(context: Context, packageName: String): Long {
+            val prefs = context.getSharedPreferences(SNOOZE_PREFS, Context.MODE_PRIVATE)
+            val breakUntil = prefs.getLong("$KEY_BREAK_UNTIL_PREFIX$packageName", 0L)
+            val diff = breakUntil - System.currentTimeMillis()
+            return if (diff > 0) (diff / 60_000L) + 1 else 0L
+        }
+
+        fun getOriginalBreakDurationMins(context: Context, packageName: String): Long {
+            val prefs = context.getSharedPreferences(SNOOZE_PREFS, Context.MODE_PRIVATE)
+            return prefs.getLong("${KEY_BREAK_UNTIL_PREFIX}${packageName}_duration", BREAK_MINUTES_DEFAULT)
+        }
+
+        fun isBreakActive(context: Context, packageName: String): Boolean {
+            return getRemainingBreakMins(context, packageName) > 0L
+        }
+
+        fun recordDismissal(context: Context): Int {
+            val prefs = context.getSharedPreferences(SNOOZE_PREFS, Context.MODE_PRIVATE)
+            val current = prefs.getInt(KEY_CONSECUTIVE_DISMISSALS, 0) + 1
+            prefs.edit().putInt(KEY_CONSECUTIVE_DISMISSALS, current).apply()
+            return current
+        }
+
+        fun resetDismissals(context: Context) {
+            context.getSharedPreferences(SNOOZE_PREFS, Context.MODE_PRIVATE).edit()
+                .putInt(KEY_CONSECUTIVE_DISMISSALS, 0)
+                .apply()
         }
     }
 

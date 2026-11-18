@@ -40,8 +40,8 @@ fun Modifier.highlighter(color: Color = IceBlue.copy(alpha = 0.45f)) =
     drawBehind {
         drawRoundRect(
             color = color,
-            topLeft = Offset(0f, size.height * 0.58f),
-            size = Size(size.width, size.height * 0.38f),
+            topLeft = Offset(0f, size.height * 0.65f),
+            size = Size(size.width, size.height * 0.32f),
             cornerRadius = CornerRadius(4.dp.toPx())
         )
     }

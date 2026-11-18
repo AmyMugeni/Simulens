@@ -27,7 +27,12 @@ data class NudgePreview(
     val message: String,
     val packageName: String,
     val appName: String,
-    val reason: String
+    val reason: String,
+    val contextLine: String = "",
+    val appSub: String = "",
+    val whyThis: String = "",
+    val openCount: Int = 1,
+    val type: com.simulens.app.domain.rules.intervention.InterventionType = com.simulens.app.domain.rules.intervention.InterventionType.SCHEDULE_CONFLICT
 )
 
 data class InterventionUiState(

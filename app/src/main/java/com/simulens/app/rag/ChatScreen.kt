@@ -107,7 +107,7 @@ fun ChatScreen(
                     ) {
                         Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
                             Text(
-                                "Your friendly focus sidekick",
+                                "Your friendly focus buddy",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = InkTextSecondary
                             )
@@ -377,7 +377,7 @@ private fun IntroCard(topic: InterventionTopic) {
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        text = if (topic != InterventionTopic.GENERAL) "Focus Notice Topic" else "Simulens Sidekick ✨",
+                        text = if (topic != InterventionTopic.GENERAL) "Focus Notice Topic" else "Simulens Buddy ✨",
                         style = MaterialTheme.typography.labelMedium,
                         color = InkAmber,
                         fontWeight = FontWeight.Bold

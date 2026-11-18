@@ -73,7 +73,11 @@ private fun ReasonTone?.dotColor(): Color {
 // ---------------------------------------------------------------------------------------------
 
 @Composable
-fun WellnessDashboardSection(state: DashboardState, modifier: Modifier = Modifier) {
+fun WellnessDashboardSection(
+    state: DashboardState,
+    modifier: Modifier = Modifier,
+    deepDive: Boolean = false
+) {
     val w = state.wellness
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -81,31 +85,33 @@ fun WellnessDashboardSection(state: DashboardState, modifier: Modifier = Modifie
     ) {
         WellnessStatusCard(result = w, timeline = state.scoreTimeline)
 
-        TodayVsBaselineCard(result = w, hasClasses = state.dayStrip.classes.isNotEmpty())
+        if (deepDive) {
+            TodayVsBaselineCard(result = w, hasClasses = state.dayStrip.classes.isNotEmpty())
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(IntrinsicSize.Min),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            ScreenTimeMetricCard(
-                minutes = w.minutes,
-                baselineMinutes = w.baselineMinutes,
+            Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-            )
-            SessionFrequencyMetricCard(
-                sessions = w.sessions,
-                band = w.sessionBand,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-            )
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                ScreenTimeMetricCard(
+                    minutes = w.minutes,
+                    baselineMinutes = w.baselineMinutes,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                )
+                SessionFrequencyMetricCard(
+                    sessions = w.sessions,
+                    band = w.sessionBand,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                )
+            }
+
+            DayStripCard(strip = state.dayStrip)
         }
-
-        DayStripCard(strip = state.dayStrip)
     }
 }
 

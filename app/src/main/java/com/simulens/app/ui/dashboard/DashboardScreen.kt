@@ -19,6 +19,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -31,6 +32,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.simulens.app.rag.ChatScreen
 import com.simulens.app.ui.components.ActiveSessionBanner
+import com.simulens.app.ui.components.AppIcon
 import com.simulens.app.ui.components.InkAvatar
 import com.simulens.app.ui.components.PaperclipDoodle
 import com.simulens.app.ui.components.PillBadge
@@ -63,7 +65,7 @@ fun DashboardScreen(
     val analytics = remember(state) { buildAnalytics(state) }
     val colors = MaterialTheme.colorScheme
 
-    // 5-Tab Navigation State: 0: Home, 1: Schedule, 2: Trends, 3: Nudges, 4: Sidekick
+    // 5-Tab Navigation State: 0: Home, 1: Schedule, 2: Trends, 3: Nudges, 4: Buddy
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
 
     val dateFormatted = remember {
@@ -82,7 +84,7 @@ fun DashboardScreen(
                     Triple(1, "Schedule", Icons.Default.CalendarToday),
                     Triple(2, "Trends", Icons.Default.BarChart),
                     Triple(3, "Nudges", Icons.Default.Shield),
-                    Triple(4, "Sidekick", Icons.AutoMirrored.Filled.Chat)
+                    Triple(4, "Buddy", Icons.AutoMirrored.Filled.Chat)
                 )
 
                 navItems.forEach { (index, label, icon) ->
@@ -149,34 +151,23 @@ fun DashboardScreen(
                         .padding(padding)
                         .background(InkBackground)
                         .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 20.dp, vertical = 16.dp)
+                        .padding(start = 20.dp, end = 20.dp, top = 10.dp, bottom = 20.dp)
                 ) {
                     if (selectedTab == 0) {
                         // ==================== 0: HOME / DASHBOARD ====================
+                        var isDeepDive by rememberSaveable { mutableStateOf(false) }
 
-                        // Header Section: Date, Greeting, Squiggle, Avatar
+                        // 1. Top Utility Row: Date on Left, Squiggle + Avatar on Right
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                                Text(
-                                    text = dateFormatted,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = InkTextSecondary
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = "${viewModel.getGreeting()}, ${userProfile.username.ifBlank { "Sam" }}",
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = InkTextPrimary,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.highlighter()
-                                )
-                            }
+                            Text(
+                                text = dateFormatted,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = InkTextSecondary
+                            )
 
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -185,15 +176,37 @@ fun DashboardScreen(
                                 SquigglyDoodle(color = IceBlue, modifier = Modifier.padding(end = 12.dp))
                                 InkAvatar(
                                     initial = userProfile.username.ifBlank { "S" },
-                                    size = 36.dp,
+                                    size = 38.dp,
                                     onClick = onNavigateToProfile
                                 )
                             }
                         }
 
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        // 2. Greeting Header: "Good Evening," top line, Username bottom line with exact highlighter width
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                text = "${viewModel.getGreeting()},",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = InkTextSecondary,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = userProfile.username.ifBlank { "Student" },
+                                style = MaterialTheme.typography.headlineLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = InkTextPrimary,
+                                modifier = Modifier
+                                    .wrapContentWidth()
+                                    .highlighter()
+                            )
+                        }
+
                         Spacer(modifier = Modifier.height(18.dp))
 
-                        // Active Session / Lecture Banner (Option 1 signature banner)
+                        // 3. Active Session / Lecture Banner
                         val ongoing = status.todayClasses.find { it.isOngoing }
                         if (ongoing != null) {
                             ActiveSessionBanner(
@@ -201,18 +214,56 @@ fun DashboardScreen(
                                 subtitle = "${ongoing.summary} >",
                                 onClick = { selectedTab = 1 }
                             )
-                            Spacer(modifier = Modifier.height(18.dp))
+                            Spacer(modifier = Modifier.height(16.dp))
                         } else if (status.todayClasses.isNotEmpty()) {
                             ActiveSessionBanner(
                                 title = "Academic schedule · ${status.todayClassesCount} classes today",
                                 subtitle = "Next: ${status.nextActivity} at ${status.nextActivityTime} >",
                                 onClick = { selectedTab = 1 }
                             )
-                            Spacer(modifier = Modifier.height(18.dp))
+                            Spacer(modifier = Modifier.height(16.dp))
                         }
 
-                        // Behavioral Wellness Cards (Score, Risk Level, Today vs Baseline, Screen Time, Session Frequency, Timeline Strip)
-                        WellnessDashboardSection(state = state)
+                        // 4. View Mode Switcher: [ Overview | Deep Dive ]
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(InkSurfaceLow, RoundedCornerShape(16.dp))
+                                .padding(4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            val modes = listOf(
+                                false to "Overview",
+                                true to "Deep Dive Analytics"
+                            )
+                            modes.forEach { (modeVal, label) ->
+                                val selected = isDeepDive == modeVal
+                                Surface(
+                                    onClick = { isDeepDive = modeVal },
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = if (selected) IceBlue else Color.Transparent,
+                                    border = BorderStroke(1.5.dp, if (selected) IceBlue else InkBorder),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Box(
+                                        contentAlignment = Alignment.Center,
+                                        modifier = Modifier.padding(vertical = 10.dp)
+                                    ) {
+                                        Text(
+                                            text = label,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                            color = if (selected) InkBackground else InkTextSecondary
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(18.dp))
+
+                        // Behavioral Wellness Cards (Score, Risk Level, Timeline)
+                        WellnessDashboardSection(state = state, deepDive = isDeepDive)
 
                         Spacer(modifier = Modifier.height(20.dp))
 
@@ -251,29 +302,17 @@ fun DashboardScreen(
                     } else if (selectedTab == 1) {
                         // ==================== 1: ACADEMIC SCHEDULE ====================
 
-                        // Header
+                        // 1. Top Utility Row: Date on Left, Squiggle + Avatar on Right
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
-                                Text(
-                                    text = dateFormatted,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = InkTextSecondary
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = "Academic schedule",
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = InkTextPrimary,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.highlighter()
-                                )
-                            }
+                            Text(
+                                text = dateFormatted,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = InkTextSecondary
+                            )
 
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -282,11 +321,24 @@ fun DashboardScreen(
                                 SquigglyDoodle(color = IceBlue, modifier = Modifier.padding(end = 12.dp))
                                 InkAvatar(
                                     initial = userProfile.username.ifBlank { "S" },
-                                    size = 36.dp,
+                                    size = 38.dp,
                                     onClick = onNavigateToProfile
                                 )
                             }
                         }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        // 2. Full-Width Title directly BELOW avatar row
+                        Text(
+                            text = "Academic schedule",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = InkTextPrimary,
+                            modifier = Modifier
+                                .wrapContentWidth()
+                                .highlighter()
+                        )
 
                         Spacer(modifier = Modifier.height(18.dp))
 
@@ -570,21 +622,6 @@ fun DashboardScreen(
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        WeeklyUsageGraphCard(
-                            trends = analytics.weeklyTrends,
-                            totalWeeklyMins = analytics.totalWeeklyMinutes,
-                            avgDuration = analytics.avgSessionDurationMins
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        TimeOfDayInsightsCard(
-                            peakLabel = analytics.peakUsageTimeLabel,
-                            stats = analytics.timeOfDayStats
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
                         AnchorCard(
                             anchor = anchor,
                             recent = state.recent,
@@ -598,8 +635,10 @@ fun DashboardScreen(
 
                         BsmasBaselineCard(
                             result = bsmasResult,
+                            prediction = riskPrediction,
                             baselines = state.baselines,
-                            onRetake = onNavigateToProfile
+                            onRetake = onNavigateToProfile,
+                            onTalk = { selectedTab = 4 }
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
@@ -681,136 +720,225 @@ fun MostUsedAppCard(
     topApps: List<AppUsageStat>,
     onConfigureApps: () -> Unit = {}
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = InkSurface),
-        border = BorderStroke(1.dp, InkBorder),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-    ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+    val colors = MaterialTheme.colorScheme
+
+    Box(modifier = Modifier.fillMaxWidth()) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
+            border = BorderStroke(1.dp, colors.outlineVariant),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                // Title Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
-                            .size(38.dp)
-                            .background(InkSurfaceHigh, CircleShape)
-                            .border(1.dp, InkBorder, CircleShape)
+                            .size(42.dp)
+                            .background(colors.primaryContainer, CircleShape)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Smartphone,
                             contentDescription = null,
-                            tint = InkAmber,
-                            modifier = Modifier.size(20.dp)
+                            tint = colors.primary,
+                            modifier = Modifier.size(22.dp)
                         )
                     }
                     Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = "Most Used App",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = InkTextPrimary
-                    )
-                }
-
-                Surface(
-                    onClick = onConfigureApps,
-                    shape = CircleShape,
-                    color = InkSurfaceHigh,
-                    border = BorderStroke(1.dp, IceBlue.copy(alpha = 0.4f))
-                ) {
-                    Text(
-                        text = "Manage Apps",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = IceBlue,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(18.dp))
-
-            if (mostUsedApp != null && mostUsedApp.totalMinutes > 0) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = mostUsedApp.displayName,
+                            text = "App Spotlight",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
-                            color = InkTextPrimary
+                            color = colors.onSurface
                         )
                         Text(
-                            text = "${formatDuration(mostUsedApp.totalMinutes)} total usage",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = InkTextSecondary
-                        )
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = InkAmber
-                    ) {
-                        Text(
-                            text = String.format(Locale.US, "%.0f%%", mostUsedApp.percentage),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = InkOnAmber,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                            text = "Monitored app usage today",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.onSurfaceVariant
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                topApps.take(4).forEach { app ->
-                    Column(modifier = Modifier.padding(vertical = 6.dp)) {
+                // Yellow Manage Apps Button BELOW App Spotlight title
+                Button(
+                    onClick = onConfigureApps,
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = InkAmber,
+                        contentColor = Color(0xFF0B1220)
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(vertical = 10.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = null,
+                        tint = Color(0xFF0B1220),
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Manage Monitored Apps",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF0B1220)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                if (mostUsedApp != null && mostUsedApp.totalMinutes > 0) {
+                    // Hero #1 Top App Card
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = colors.surfaceContainer,
+                        border = BorderStroke(1.dp, InkAmber.copy(alpha = 0.3f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            modifier = Modifier.padding(14.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = app.displayName,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Medium,
-                                color = InkTextPrimary
-                            )
-                            Text(
-                                text = String.format(Locale.US, "%s (%.0f%%)", formatDuration(app.totalMinutes), app.percentage),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = InkTextSecondary
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f).padding(end = 8.dp)
+                            ) {
+                                AppIcon(packageName = mostUsedApp.packageName, size = 40.dp)
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = mostUsedApp.displayName,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.onSurface,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = "${formatDuration(mostUsedApp.totalMinutes)} total today",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = colors.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = InkAmber.copy(alpha = 0.16f)
+                            ) {
+                                Text(
+                                    text = String.format(Locale.US, "%.0f%%", mostUsedApp.percentage),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = InkAmber,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                )
+                            }
                         }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        LinearProgressIndicator(
-                            progress = { app.percentage / 100f },
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = "Top Monitored Usage",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.primary
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    topApps.take(4).forEachIndexed { idx, app ->
+                        val barColor = if (idx == 0) InkAmber else IceBlue
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(6.dp)
-                                .clip(CircleShape),
-                            color = IceBlue,
-                            trackColor = InkSurfaceHigh
+                                .padding(vertical = 4.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f).padding(end = 8.dp)
+                                ) {
+                                    AppIcon(packageName = app.packageName, size = 22.dp)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = app.displayName,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = colors.onSurface,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                Text(
+                                    text = "${formatDuration(app.totalMinutes)} (${String.format(Locale.US, "%.0f%%", app.percentage)})",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.onSurfaceVariant
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(5.dp))
+
+                            LinearProgressIndicator(
+                                progress = { (app.percentage / 100f).coerceIn(0.02f, 1.0f) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(5.dp)
+                                    .clip(CircleShape),
+                                color = barColor,
+                                trackColor = colors.surfaceContainerHigh
+                            )
+                        }
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(colors.surfaceContainer, RoundedCornerShape(14.dp))
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = colors.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "No monitored app usage recorded yet today.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colors.onSurfaceVariant
                         )
                     }
                 }
-            } else {
-                Text(
-                    text = "No monitored app usage recorded yet today.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = InkTextSecondary,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
             }
         }
+
+        PaperclipDoodle(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .offset(x = (-16).dp, y = (-10).dp)
+                .rotate(12f)
+        )
     }
 }
 
