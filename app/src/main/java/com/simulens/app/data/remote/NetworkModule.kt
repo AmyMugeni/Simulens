@@ -13,9 +13,10 @@ object RetrofitClient {
             level = HttpLoggingInterceptor.Level.BODY
             OkHttpClient.Builder()
                 .addInterceptor(this)
-                .connectTimeout(60, TimeUnit.SECONDS)
-                .readTimeout(60, TimeUnit.SECONDS)
-                .writeTimeout(60, TimeUnit.SECONDS)
+                .connectTimeout(100, TimeUnit.SECONDS)
+                .readTimeout(100, TimeUnit.SECONDS)
+                .writeTimeout(100, TimeUnit.SECONDS)
+                .callTimeout(100, TimeUnit.SECONDS)
                 .build()
         }
     }

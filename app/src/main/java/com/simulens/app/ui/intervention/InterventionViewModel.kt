@@ -32,6 +32,7 @@ data class NudgePreview(
     val appSub: String = "",
     val whyThis: String = "",
     val openCount: Int = 1,
+    val className: String = "",
     val type: com.simulens.app.domain.rules.intervention.InterventionType = com.simulens.app.domain.rules.intervention.InterventionType.SCHEDULE_CONFLICT
 )
 

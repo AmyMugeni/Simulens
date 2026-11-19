@@ -240,8 +240,22 @@ class AppUsageTrackerService : Service() {
         while (usageEvents.hasNextEvent()) {
             usageEvents.getNextEvent(event)
             val pkg = event.packageName ?: continue
+
+            // 1. Process screen-off and lock events BEFORE filtering system packages!
+            when (event.eventType) {
+                UsageEvents.Event.SCREEN_NON_INTERACTIVE,
+                UsageEvents.Event.KEYGUARD_SHOWN -> {
+                    lastResumedPkg = null
+                    lastResumedTime = 0L
+                    lastPausedTime = 0L
+                    continue
+                }
+            }
+
+            // 2. Filter out ignored system packages
             if (isIgnoredSystemPackage(pkg)) continue
 
+            // 3. Process activity resumed/paused events
             when (event.eventType) {
                 UsageEvents.Event.ACTIVITY_RESUMED -> {
                     lastResumedPkg = pkg
@@ -253,12 +267,6 @@ class AppUsageTrackerService : Service() {
                     if (pkg == lastResumedPkg) {
                         lastPausedTime = event.timeStamp
                     }
-                }
-                UsageEvents.Event.SCREEN_NON_INTERACTIVE,
-                UsageEvents.Event.KEYGUARD_SHOWN -> {
-                    lastResumedPkg = null
-                    lastResumedTime = 0L
-                    lastPausedTime = 0L
                 }
             }
         }
@@ -479,15 +487,22 @@ class AppUsageTrackerService : Service() {
                 val appLabel = labelFor(packageName)
                 val contextStr = when (intervention.type) {
                     InterventionType.SCHEDULE_CONFLICT -> intervention.detail
-                    InterventionType.SLEEP_WINDOW, InterventionType.WIND_DOWN, InterventionType.MORNING -> "Sleep window protection active"
+                    InterventionType.SLEEP_WINDOW, InterventionType.WIND_DOWN -> "Sleep window protection active"
+                    InterventionType.MORNING -> "First minutes after waking"
                     else -> "Daily screen time baseline check"
                 }
                 val subStr = when (intervention.type) {
                     InterventionType.SCHEDULE_CONFLICT -> "$appLabel · Opened during class"
-                    InterventionType.SLEEP_WINDOW, InterventionType.WIND_DOWN, InterventionType.MORNING -> "$appLabel · Opened late at night"
+                    InterventionType.MORNING -> "$appLabel · Opened soon after waking"
+                    InterventionType.SLEEP_WINDOW, InterventionType.WIND_DOWN -> "$appLabel · Opened late at night"
                     else -> "$appLabel · Visit running longer than usual"
                 }
+                val classNameStr = if (intervention.type == InterventionType.SCHEDULE_CONFLICT)
+                    intervention.detail.substringBefore(" until") else ""
+                val openCountVal = if (intervention.type == InterventionType.SCHEDULE_CONFLICT)
+                    (repeatFacts[packageName]?.classToday ?: 0) + 1 else 1
                 val whyStr = when (intervention.type) {
+                    InterventionType.MORNING -> "Morning protection active. Starting the day on social media can set a reactive tone and crowd out your own plans."
                     InterventionType.SCHEDULE_CONFLICT -> "Class focus active. Reopening apps during lectures breaks attention retention."
                     InterventionType.SLEEP_WINDOW, InterventionType.WIND_DOWN -> "Rest protection active. Late night screen exposure disrupts sleep circadian rhythm."
                     else -> "Session deviation detected against your established baseline. Sensitivity scaled by BSMAS assessment."
@@ -502,14 +517,16 @@ class AppUsageTrackerService : Service() {
                     contextLine = contextStr,
                     appSub = subStr,
                     whyThis = whyStr,
-                    type = intervention.type
+                    type = intervention.type,
+                    openCount = openCountVal,
+                    className = classNameStr
                 )
                 // respectSnooze = false: evaluateRealtimeSession already checked it.
                 val shown = intervention.type in overlayTypes &&
                         InterventionOverlay.show(applicationContext, nudge, respectSnooze = false) { action ->
                             onOverlayResult(action, logId, intervention.type)
                         }
-                if (!shown) notifier.show(intervention, packageName, logId ?: -1L)
+                if (!shown) notifier.show(intervention, packageName, logId ?: -1L, appLabel, classNameStr, openCountVal)
             }
         }
     }
@@ -522,12 +539,12 @@ class AppUsageTrackerService : Service() {
             }
             OverlayAction.TAKE_BREAK -> interventionPolicy.suppress(type, 30)
             OverlayAction.DISMISS -> interventionPolicy.suppress(type, 20)
-            OverlayAction.LEARN_MORE -> Unit
+            OverlayAction.LEARN_MORE -> Unit // chat is engagement; MainActivity starts the 15 min break
         }
         if (logId != null) serviceScope.launch {
             runCatching {
                 database.interventionLogDao()
-                    .setDismissed(logId, action != OverlayAction.TAKE_BREAK)
+                    .setDismissed(logId, action == OverlayAction.DISMISS || action == OverlayAction.SNOOZE)
             }
         }
     }
@@ -781,7 +798,7 @@ class AppUsageTrackerService : Service() {
         private const val NOTIFICATION_ID = 1001
         private const val POLL_INTERVAL_MS = 2_000L
         private const val SNAPSHOT_REFRESH_MS = 60_000L
-        private const val MIN_SESSION_MINS = 0.001f
+        private const val MIN_SESSION_MINS = 2.0f / 60.0f // 2 seconds floor, matching HistoricalUsageSyncer & WeekdayBaselineEngine
 
         private const val MAX_COVERABLE_GAP_MS = 5_000L
         private const val COVERAGE_FLUSH_INTERVAL_MS = 30_000L

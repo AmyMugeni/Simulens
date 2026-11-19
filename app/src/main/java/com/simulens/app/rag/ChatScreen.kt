@@ -57,18 +57,53 @@ fun ChatScreen(
     var input by remember { mutableStateOf("") }
     var showClearConfirm by remember { mutableStateOf(false) }
 
-    LaunchedEffect(topic) { viewModel.setTopic(topic) }
+    // GENERAL is the default; don't let it overwrite the topic a nudge just set.
+    LaunchedEffect(topic) { if (topic != InterventionTopic.GENERAL) viewModel.setTopic(topic) }
+    var showConsent by remember { mutableStateOf(false) }
 
     val last = state.messages.lastOrNull()
+    val chipLabels = if (!state.sending) state.seedChips.map { it.label } else emptyList()
     val followUps = if (
-        !state.sending && last != null && !last.fromUser && last.mode != Mode.CRISIS
+        chipLabels.isEmpty() && !state.sending && last != null && !last.fromUser && last.mode != Mode.CRISIS
     ) state.remainingPrompts.take(4) else emptyList()
 
     val itemCount = if (state.messages.isEmpty()) 2
-    else state.messages.size + (if (state.sending) 1 else 0) + (if (followUps.isNotEmpty()) 1 else 0)
+    else state.messages.size + (if (state.sending) 1 else 0) +
+            (if (followUps.isNotEmpty() || chipLabels.isNotEmpty()) 1 else 0)
 
     LaunchedEffect(itemCount) {
         if (state.messages.isNotEmpty()) listState.animateScrollToItem(itemCount - 1)
+    }
+
+    if (showConsent) {
+        AlertDialog(
+            onDismissRequest = { showConsent = false },
+            containerColor = InkSurface,
+            title = { Text("Send your data to a remote server?", fontWeight = FontWeight.Bold, color = InkTextPrimary) },
+            text = {
+                Text(
+                    "To tailor answers, Simulens will send a short summary of your own data to a remote server " +
+                            "and an AI model each time you send a message: your BSMAS score and risk level, rough " +
+                            "daily usage, busiest hours, how often you opened social media in class, near bedtime " +
+                            "or after waking, which nudges you got recently, and your wake and bed times. " +
+                            "App names and raw usage logs are not sent.\n\n" +
+                            "This leaves your device, so it is no longer only on-device. You can turn it off at " +
+                            "any time. Turn on personalization?",
+                    color = InkTextSecondary
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.setPersonalization(true)
+                    showConsent = false
+                }) { Text("Yes, send my data", color = IceBlue, fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConsent = false }) {
+                    Text("No, keep it private", color = InkTextSecondary)
+                }
+            }
+        )
     }
 
     if (showClearConfirm) {
@@ -254,7 +289,9 @@ fun ChatScreen(
             item {
                 PersonalizationBanner(
                     isPersonalized = state.isPersonalized,
-                    onToggle = { viewModel.togglePersonalization() },
+                    onToggle = {
+                        if (state.isPersonalized) viewModel.setPersonalization(false) else showConsent = true
+                    },
                     summary = state.personalizedSummary
                 )
             }
@@ -302,6 +339,17 @@ fun ChatScreen(
                 }
             }
 
+            if (chipLabels.isNotEmpty()) {
+                item {
+                    PromptList(
+                        title = "Tap to reply",
+                        prompts = chipLabels,
+                        onPick = viewModel::pickChip,
+                        enabled = true
+                    )
+                }
+            }
+
             if (followUps.isNotEmpty()) {
                 item {
                     PromptList(
@@ -341,15 +389,15 @@ private fun PersonalizationBanner(
             Spacer(Modifier.width(10.dp))
             Text(
                 text = if (isPersonalized) {
-                    if (summary.isNotBlank()) summary else "Tuned to your check-in and your Gentle tone setting."
-                } else "Standard focus assistance mode.",
+                    if (summary.isNotBlank()) "Personalized: $summary" else "Personalized. A summary of your data is sent with your messages."
+                } else "Personalization is off. Tap to allow tailored answers (asks first).",
                 style = MaterialTheme.typography.bodySmall,
                 color = InkTextSecondary,
                 modifier = Modifier.weight(1f)
             )
             Spacer(Modifier.width(6.dp))
             Text(
-                text = "Why?",
+                text = if (isPersonalized) "Turn off" else "Turn on",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 color = IceBlue

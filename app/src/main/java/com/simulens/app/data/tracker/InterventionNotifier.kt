@@ -19,6 +19,10 @@ object InterventionExtras {
     const val MESSAGE = "simulens.intervention.message"
     const val EVIDENCE_TAG = "simulens.intervention.evidence_tag"
     const val SOURCE_PACKAGE = "simulens.intervention.source_package"
+    const val NUDGE_ID = "simulens.intervention.nudge_id"
+    const val APP_NAME = "simulens.intervention.app_name"
+    const val CLASS_NAME = "simulens.intervention.class_name"
+    const val OPEN_COUNT = "simulens.intervention.open_count"
 }
 
 /**
@@ -38,7 +42,14 @@ class InterventionNotifier(private val context: Context) {
     }
 
     @SuppressLint("MissingPermission")
-    fun show(intervention: Intervention, sourcePackage: String, logId: Long = -1L) {
+    fun show(
+        intervention: Intervention,
+        sourcePackage: String,
+        logId: Long = -1L,
+        appName: String = "",
+        className: String = "",
+        openCount: Int = 0
+    ) {
         val manager = NotificationManagerCompat.from(context)
         if (!manager.areNotificationsEnabled()) return
 
@@ -89,6 +100,10 @@ class InterventionNotifier(private val context: Context) {
             putExtra(InterventionActionReceiver.EXTRA_OPEN_CHATBOT, true)
             putExtra(InterventionActionReceiver.EXTRA_LOG_ID, logId)
             putExtra(InterventionExtras.TYPE, intervention.type.name)
+            putExtra(InterventionExtras.NUDGE_ID, java.util.UUID.randomUUID().toString())
+            putExtra(InterventionExtras.APP_NAME, appName)
+            putExtra(InterventionExtras.CLASS_NAME, className)
+            putExtra(InterventionExtras.OPEN_COUNT, openCount)
             putExtra(InterventionExtras.TITLE, intervention.title)
             putExtra(InterventionExtras.MESSAGE, intervention.message)
             putExtra(InterventionExtras.EVIDENCE_TAG, intervention.type.evidenceTag)

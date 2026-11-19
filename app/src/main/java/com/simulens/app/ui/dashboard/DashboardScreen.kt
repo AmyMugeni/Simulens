@@ -61,6 +61,7 @@ fun DashboardScreen(
     val bsmasResult by viewModel.bsmasResult.collectAsState()
     val anchor by viewModel.anchor.collectAsState()
     val riskPrediction by viewModel.riskPrediction.collectAsState()
+    val chatLaunchVm: com.simulens.app.rag.ChatLaunchViewModel = viewModel()
 
     val analytics = remember(state) { buildAnalytics(state) }
     val colors = MaterialTheme.colorScheme
@@ -132,10 +133,19 @@ fun DashboardScreen(
             }
 
             4 -> {
-                // ==================== TAB 4: Assistant (CHATBOT) ====================
+                // ==================== TAB 4: Buddy (CHATBOT) ====================
+                val chatViewModel: com.simulens.app.rag.ChatViewModel = viewModel()
+                val pendingSeed by chatLaunchVm.pending.collectAsState()
+
+                LaunchedEffect(pendingSeed) {
+                    pendingSeed?.let { seed ->
+                        chatViewModel.startFromSeed(seed)
+                    }
+                }
+
                 Box(modifier = Modifier.fillMaxSize().padding(padding)) {
                     ChatScreen(
-                        viewModel = viewModel(),
+                        viewModel = chatViewModel,
                         showBackButton = false,
                         onNavigateBack = { selectedTab = 0 },
                         username = userProfile.username
@@ -288,7 +298,17 @@ fun DashboardScreen(
                         MLClassifierCard(
                             prediction = riskPrediction,
                             trajectory = currentTrajectory,
-                            onNavigateToRag = { selectedTab = 4 }
+                            onNavigateToRag = {
+                                val seed = com.simulens.app.domain.chat.ChatSeed(
+                                    id = "ml_risk_${System.currentTimeMillis()}",
+                                    type = com.simulens.app.domain.rules.intervention.InterventionType.HIGH_DAILY_DEVIATION,
+                                    appName = analytics.mostUsedApp?.displayName ?: "monitored apps",
+                                    packageName = analytics.mostUsedApp?.packageName ?: "",
+                                    riskProbability = riskPrediction?.probability
+                                )
+                                chatLaunchVm.offer(seed)
+                                selectedTab = 4
+                            }
                         )
 
                         Spacer(modifier = Modifier.height(20.dp))
@@ -638,7 +658,17 @@ fun DashboardScreen(
                             prediction = riskPrediction,
                             baselines = state.baselines,
                             onRetake = onNavigateToProfile,
-                            onTalk = { selectedTab = 4 }
+                            onTalk = {
+                                val seed = com.simulens.app.domain.chat.ChatSeed(
+                                    id = "bsmas_align_${System.currentTimeMillis()}",
+                                    type = com.simulens.app.domain.rules.intervention.InterventionType.HIGH_DAILY_DEVIATION,
+                                    appName = analytics.mostUsedApp?.displayName ?: "monitored apps",
+                                    packageName = analytics.mostUsedApp?.packageName ?: "",
+                                    bsmasScore = bsmasResult?.total
+                                )
+                                chatLaunchVm.offer(seed)
+                                selectedTab = 4
+                            }
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))

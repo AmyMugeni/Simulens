@@ -171,6 +171,10 @@ object InterventionOverlay {
                 putExtra(InterventionExtras.TITLE, nudge.title)
                 putExtra(InterventionExtras.MESSAGE, nudge.message)
                 putExtra(InterventionExtras.SOURCE_PACKAGE, nudge.packageName)
+                putExtra(InterventionExtras.NUDGE_ID, java.util.UUID.randomUUID().toString())
+                putExtra(InterventionExtras.APP_NAME, nudge.appName)
+                putExtra(InterventionExtras.CLASS_NAME, nudge.className)
+                putExtra(InterventionExtras.OPEN_COUNT, nudge.openCount)
             }
         )
     }

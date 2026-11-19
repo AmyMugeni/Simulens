@@ -74,6 +74,26 @@ enum class InterventionTopic(
             "How can I take healthy breaks while using social media?",
             "How do I know if my social media use is becoming a problem?"
         )
+    ),
+    MORNING_USE(
+        headline = "Reaching for your phone after waking",
+        contextLine = "A notice was just shown about social media use soon after waking up.",
+        prompts = listOf(
+            "Why do I reach for my phone first thing in the morning?",
+            "How does morning scrolling affect my mood and focus?",
+            "What is a better first half hour of the day?",
+            "How do I break the habit of checking my phone when I wake up?"
+        )
+    ),
+    BSMAS_HIGH(
+        headline = "Higher self-reported concern",
+        contextLine = "A self-assessment check-in indicated higher concern regarding social media preoccupation and distress.",
+        prompts = listOf(
+            "Why does my self-assessment score indicate higher concern?",
+            "How can I manage strong urges and preoccupation with social media?",
+            "What strategies help when social media is used as an escape from stress?",
+            "How does social media preoccupation impact my academic focus and well-being?"
+        )
     );
 
     companion object {

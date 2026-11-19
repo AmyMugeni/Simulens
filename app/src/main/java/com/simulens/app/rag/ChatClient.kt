@@ -13,7 +13,8 @@ import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 data class Source(val n: Int, val title: String, val url: String)
-enum class Mode { ANSWER, NO_INFO, CRISIS }
+/** LOCAL = written on the device (e.g. the nudge opener). Never sent to the server as history. */
+enum class Mode { ANSWER, NO_INFO, CRISIS, LOCAL }
 data class Reply(val answer: String, val sources: List<Source>, val mode: Mode)
 data class Turn(val role: String, val content: String) // role: "user" or "assistant"
 

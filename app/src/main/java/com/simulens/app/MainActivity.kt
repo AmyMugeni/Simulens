@@ -17,7 +17,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.simulens.app.data.tracker.AppUsageTrackerService
 import com.simulens.app.data.tracker.InterventionActionReceiver
 import com.simulens.app.data.tracker.PermissionUtils
+import com.simulens.app.rag.ChatLaunchViewModel
+import com.simulens.app.rag.ChatSeedIntent
 import com.simulens.app.rag.ChatScreen
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.simulens.app.rag.ChatViewModel
 import com.simulens.app.ui.apps.AppSelectionScreen
 import com.simulens.app.ui.dashboard.DashboardScreen
@@ -35,9 +40,13 @@ class MainActivity : ComponentActivity() {
 
     private val onboardingViewModel: OnboardingViewModel by viewModels()
     private val dashboardViewModel: DashboardViewModel by viewModels()
+    private val chatLaunch: ChatLaunchViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // A recreate (rotation, process restore) is not a new launch, so never replay the intent.
+        if (savedInstanceState == null) handleLaunchIntent(intent)
 
         // Ensure tracking service is running if permissions are granted
         if (PermissionUtils.hasUsageStatsPermission(this)) {
@@ -50,9 +59,19 @@ class MainActivity : ComponentActivity() {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     val navController = rememberNavController()
 
-                    LaunchedEffect(intent) {
-                        if (intent?.getBooleanExtra(InterventionActionReceiver.EXTRA_OPEN_CHATBOT, false) == true) {
-                            navController.navigate(MainRoutes.ASSISTANT)
+                    val pendingSeed by chatLaunch.pending.collectAsState()
+                    val backEntry by navController.currentBackStackEntryAsState()
+                    val route = backEntry?.destination?.route
+
+                    // Hold the seed until the nav graph is ready and the user is past onboarding.
+                    LaunchedEffect(pendingSeed?.id, route) {
+                        if (pendingSeed == null || route == null) return@LaunchedEffect
+                        chatLaunch.dropIfStale()
+                        if (route == OnboardingRoutes.SPLASH || route == OnboardingRoutes.PERMISSIONS ||
+                            route == OnboardingRoutes.GATEWAY || route == OnboardingRoutes.SETUP_HUB
+                        ) return@LaunchedEffect
+                        if (route != MainRoutes.ASSISTANT) {
+                            navController.navigate(MainRoutes.ASSISTANT) { launchSingleTop = true }
                         }
                     }
 
@@ -149,6 +168,13 @@ class MainActivity : ComponentActivity() {
 
                         composable(MainRoutes.ASSISTANT) {
                             val chatViewModel: ChatViewModel = viewModel()
+                            val seed by chatLaunch.pending.collectAsState()
+                            LaunchedEffect(seed?.id) {
+                                seed?.let {
+                                    chatViewModel.startFromSeed(it)
+                                    chatLaunch.consume(it.id)
+                                }
+                            }
                             ChatScreen(
                                 viewModel = chatViewModel,
                                 onNavigateBack = {
@@ -181,6 +207,26 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleLaunchIntent(intent)
+    }
+
+    private fun handleLaunchIntent(i: Intent?) {
+        if (i == null || !i.getBooleanExtra(InterventionActionReceiver.EXTRA_OPEN_CHATBOT, false)) return
+        i.removeExtra(InterventionActionReceiver.EXTRA_OPEN_CHATBOT) // consume once
+        val seed = ChatSeedIntent.from(this, i)
+        if (!chatLaunch.offer(seed)) return // already handled this nudge
+        // Chatting is engagement, not a dismissal. Start a short break for the app so the overlay
+        // does not fire again on return; reopening it shows the break in progress.
+        // Don't restart a break that is already running (e.g. chat opened from the break overlay).
+        if (seed.packageName.isNotBlank() && seed.packageName != packageName &&
+            !InterventionActionReceiver.isBreakActive(this, seed.packageName)
+        ) {
+            InterventionActionReceiver.startBreak(this, seed.packageName)
         }
     }
 }
