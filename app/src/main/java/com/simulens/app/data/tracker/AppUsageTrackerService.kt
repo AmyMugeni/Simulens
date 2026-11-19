@@ -698,8 +698,9 @@ class AppUsageTrackerService : Service() {
 
                 val userProfile = cachedUserProfile
                 val scheduleConflict = interventionEngine.isInClass(sessionTime.toLocalTime(), classesFor(sessionDate))
-                val minutesSinceWake = ChronoUnit.MINUTES.between(userProfile.wakeUpTime, sessionTime.toLocalTime()).toInt()
-                val minutesUntilSleep = ChronoUnit.MINUTES.between(sessionTime.toLocalTime(), userProfile.sleepTime).toInt()
+                val nowTime = sessionTime.toLocalTime()
+                val minutesSinceWake = ((ChronoUnit.MINUTES.between(userProfile.wakeUpTime, nowTime) % 1440 + 1440) % 1440).toInt()
+                val minutesUntilSleep = ((ChronoUnit.MINUTES.between(nowTime, userProfile.sleepTime) % 1440 + 1440) % 1440).toInt()
 
                 val wakeWindowEnd = userProfile.wakeUpTime.plusMinutes(userProfile.morningBufferMinutes)
                 val isMorning = isTimeBetween(sessionTime.toLocalTime(), userProfile.wakeUpTime, wakeWindowEnd)

@@ -532,7 +532,7 @@ private fun MessageBubble(m: ChatMessage, onDelete: () -> Unit) {
                 crisis -> BorderStroke(1.dp, RiskHigh)
                 else -> BorderStroke(1.dp, InkBorder)
             },
-            modifier = Modifier.widthIn(max = 310.dp)
+            modifier = Modifier.widthIn(max = 340.dp)
         ) {
             Text(
                 text = formattedText,
@@ -551,7 +551,7 @@ private fun MessageBubble(m: ChatMessage, onDelete: () -> Unit) {
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.widthIn(max = 310.dp)
+                modifier = Modifier.widthIn(max = 340.dp)
             ) {
                 m.sources.forEach { s ->
                     AssistChip(
@@ -583,7 +583,7 @@ private fun parseMarkdownToAnnotatedString(
     return buildAnnotatedString {
         val lines = markdown.split("\n")
         lines.forEachIndexed { index, line ->
-            var trimmed = line.trim()
+            var trimmed = line.trimEnd()
             if (trimmed.isEmpty()) {
                 if (index < lines.size - 1) append("\n")
                 return@forEachIndexed
@@ -601,45 +601,44 @@ private fun parseMarkdownToAnnotatedString(
                 trimmed = "•  " + trimmed.substring(2).trim()
             }
 
-            // Pattern for **bold** or *italic*
-            val formatRegex = Regex("\\*\\*(.*?)\\*\\*|\\*(.*?)\\*|__(.*?)__|_(.*?)_")
-
-            var lastMatchEnd = 0
-            val matches = formatRegex.findAll(trimmed).toList()
-
             if (isHeading) {
                 pushStyle(SpanStyle(fontWeight = FontWeight.Bold, color = headingColor, fontSize = 15.sp))
             }
 
+            // Regex for bold (**text** or __text__) and italic (*text* or _text_)
+            val formatRegex = Regex("""(\*\*|__)(.*?)\1|(\*|_)(.*?)\3""")
+            var lastMatchEnd = 0
+            val matches = formatRegex.findAll(trimmed).toList()
+
             if (matches.isEmpty()) {
-                append(trimmed.replace("*", ""))
+                append(trimmed)
             } else {
                 for (match in matches) {
-                    val prevText = trimmed.substring(lastMatchEnd, match.range.first).replace("*", "")
-                    append(prevText)
-
-                    val groupValues = match.groupValues
-                    val isBold = match.value.startsWith("**") || match.value.startsWith("__")
-                    val innerText = when {
-                        groupValues[1].isNotEmpty() -> groupValues[1]
-                        groupValues[2].isNotEmpty() -> groupValues[2]
-                        groupValues[3].isNotEmpty() -> groupValues[3]
-                        groupValues[4].isNotEmpty() -> groupValues[4]
-                        else -> match.value.replace("*", "").replace("_", "")
+                    // Append any unformatted text preceding the match
+                    if (match.range.first > lastMatchEnd) {
+                        append(trimmed.substring(lastMatchEnd, match.range.first))
                     }
 
-                    if (isBold) {
+                    val boldGroup = match.groupValues[2]
+                    val italicGroup = match.groupValues[4]
+
+                    if (boldGroup.isNotEmpty()) {
                         pushStyle(SpanStyle(fontWeight = FontWeight.Bold))
-                    } else {
+                        append(boldGroup)
+                        pop()
+                    } else if (italicGroup.isNotEmpty()) {
                         pushStyle(SpanStyle(fontStyle = FontStyle.Italic))
+                        append(italicGroup)
+                        pop()
+                    } else {
+                        append(match.value)
                     }
-                    append(innerText)
-                    pop()
 
                     lastMatchEnd = match.range.last + 1
                 }
+                // Append trailing text if any
                 if (lastMatchEnd < trimmed.length) {
-                    append(trimmed.substring(lastMatchEnd).replace("*", ""))
+                    append(trimmed.substring(lastMatchEnd))
                 }
             }
 

@@ -112,9 +112,9 @@ object HistoricalUsageSyncer {
 
                     val inClass = interventionEngine.isInClass(startTime, classBlocks)
                     val minutesSinceWake =
-                        ChronoUnit.MINUTES.between(userProfile.wakeUpTime, startTime).toInt()
+                        (((ChronoUnit.MINUTES.between(userProfile.wakeUpTime, startTime) % 1440 + 1440) % 1440)).toInt()
                     val minutesUntilSleep =
-                        ChronoUnit.MINUTES.between(startTime, userProfile.sleepTime).toInt()
+                        (((ChronoUnit.MINUTES.between(startTime, userProfile.sleepTime) % 1440 + 1440) % 1440)).toInt()
 
                     val wakeWindowEnd =
                         userProfile.wakeUpTime.plusMinutes(userProfile.morningBufferMinutes)

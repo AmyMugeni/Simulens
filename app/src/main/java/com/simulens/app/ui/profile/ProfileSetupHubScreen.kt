@@ -1,10 +1,14 @@
-package com.simulens.app.ui.profile
+﻿package com.simulens.app.ui.profile
 
 import android.util.Log
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -13,23 +17,21 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.android.gms.auth.GoogleAuthUtil
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -37,10 +39,9 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.Scope
 import com.simulens.app.BuildConfig
-import com.simulens.app.ui.components.GradientButton
-import com.simulens.app.ui.components.PillBadge
-import com.simulens.app.ui.components.TimePickerCard
+import com.simulens.app.ui.components.*
 import com.simulens.app.ui.onboarding.OnboardingViewModel
+import com.simulens.app.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -67,8 +68,14 @@ fun ProfileSetupHubScreen(
     val calendarState by calendarVm.uiState.collectAsState()
 
     var showAddClassDialog by remember { mutableStateOf(false) }
-
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // 0: Identity & Sleep, 1: Academic Schedule, 2: Monitored Apps, 3: Habit Assessment (BSMAS)
+    var currentStep by rememberSaveable { mutableIntStateOf(0) }
+
+    BackHandler(enabled = currentStep > 0) {
+        currentStep -= 1
+    }
 
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -126,10 +133,6 @@ fun ProfileSetupHubScreen(
         }
     }
 
-    val progress by viewModel.completionPercentage.collectAsState()
-    val isComplete = progress >= 1.0f
-    val colors = MaterialTheme.colorScheme
-
     LaunchedEffect(calendarState.events) {
         if (calendarState.events.isNotEmpty()) {
             viewModel.updateTimetableStatus(true)
@@ -145,223 +148,202 @@ fun ProfileSetupHubScreen(
         "You use social media so much that it has had a negative impact on your job/studies."
     )
 
+    // Step Validation flags
+    val isStep1Valid = userProfile.username.trim().length >= 3 && userProfile.isSleepConfigured
+    val isStep2Valid = true // Schedule can be synced or skipped/empty initially
+    val isStep3Valid = true // Monitored apps defaults exist
+    val isStep4Valid = bsmasAnswers.all { it in 1..5 }
+
+    val canProceed = when (currentStep) {
+        0 -> isStep1Valid
+        1 -> isStep2Valid
+        2 -> isStep3Valid
+        3 -> isStep4Valid
+        else -> true
+    }
+
     Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+        containerColor = InkBackground,
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        topBar = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(InkBackground)
+                    .statusBarsPadding()
+                    .padding(horizontal = 24.dp, vertical = 12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (currentStep > 0) {
+                            IconButton(
+                                onClick = { currentStep -= 1 },
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(InkSurfaceHigh)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Back",
+                                    tint = InkTextPrimary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                            Spacer(Modifier.width(12.dp))
+                        }
+                        Column {
+                            Text(
+                                text = "Step ${currentStep + 1} of 4",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = InkAmber,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = when (currentStep) {
+                                    0 -> "Your Rhythm"
+                                    1 -> "Academic Schedule"
+                                    2 -> "Focus Boundaries"
+                                    else -> "Self-Reflection"
+                                },
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = InkTextPrimary,
+                                modifier = Modifier.highlighter()
+                            )
+                        }
+                    }
+
+                    InkAvatar(
+                        initial = userProfile.username.ifBlank { "S" },
+                        size = 36.dp
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Segmented Progress Bar (4 steps)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    (0..3).forEach { index ->
+                        val isCurrent = currentStep == index
+                        val isPassed = currentStep > index
+                        val barColor = when {
+                            isPassed -> RiskLow
+                            isCurrent -> IceBlue
+                            else -> InkSurfaceHigh
+                        }
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(6.dp)
+                                .clip(RoundedCornerShape(3.dp))
+                                .background(barColor)
+                        )
+                    }
+                }
+            }
+        },
+        bottomBar = {
+            Surface(
+                color = InkSurfaceLow,
+                border = BorderStroke(1.dp, InkBorder),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(horizontal = 24.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (currentStep > 0) {
+                        OutlinedButton(
+                            onClick = { currentStep -= 1 },
+                            shape = RoundedCornerShape(14.dp),
+                            border = BorderStroke(1.dp, InkBorder),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = InkTextSecondary)
+                        ) {
+                            Text("Back")
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+
+                    if (currentStep < 3) {
+                        Button(
+                            onClick = { if (canProceed) currentStep += 1 },
+                            enabled = canProceed,
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = IceBlue,
+                                contentColor = OnIceBlue,
+                                disabledContainerColor = InkSurfaceHigh,
+                                disabledContentColor = InkTextMuted
+                            )
+                        ) {
+                            Text("Continue", fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.width(6.dp))
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowForward,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    } else {
+                        GradientButton(
+                            text = "Complete Profile",
+                            onClick = { viewModel.completeOnboarding(onComplete) },
+                            enabled = canProceed,
+                            icon = Icons.Default.Check,
+                            modifier = Modifier.widthIn(min = 180.dp)
+                        )
+                    }
+                }
+            }
+        }
     ) { innerPadding ->
-        Column(
+        AnimatedContent(
+            targetState = currentStep,
+            transitionSpec = {
+                if (targetState > initialState) {
+                    (slideInHorizontally(tween(300)) { width -> width } + fadeIn(tween(300)))
+                        .togetherWith(slideOutHorizontally(tween(300)) { width -> -width } + fadeOut(tween(300)))
+                } else {
+                    (slideInHorizontally(tween(300)) { width -> -width } + fadeIn(tween(300)))
+                        .togetherWith(slideOutHorizontally(tween(300)) { width -> width } + fadeOut(tween(300)))
+                }
+            },
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .background(colors.background)
-                .systemBarsPadding()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp)
-        ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Profile Setup",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = colors.onBackground
-            )
-
-            IconButton(
-                onClick = onNavigateToProfile,
+                .padding(innerPadding),
+            label = "StepTransition"
+        ) { step ->
+            Column(
                 modifier = Modifier
-                    .clip(CircleShape)
-                    .background(colors.primaryContainer)
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp, vertical = 16.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = "View Profile",
-                    tint = colors.onPrimaryContainer
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Progress Card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = if (isComplete) colors.primaryContainer else colors.surfaceContainerLow
-            ),
-            border = BorderStroke(
-                1.dp,
-                if (isComplete) colors.primary else colors.outlineVariant
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Row(
-                modifier = Modifier.padding(20.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Completion Status",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isComplete) colors.onPrimaryContainer else colors.onSurface
+                when (step) {
+                    0 -> Step1IdentityAndSleep(
+                        username = userProfile.username,
+                        wakeUpTime = userProfile.wakeUpTime,
+                        sleepTime = userProfile.sleepTime,
+                        onUsernameChange = viewModel::updateUsername,
+                        onWakeUpTimeChange = viewModel::updateWakeUpTime,
+                        onSleepTimeChange = viewModel::updateSleepTime
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = if (isComplete) "All 4 tasks complete! Ready to start." else "Complete all tasks below to unlock Simulens",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (isComplete) colors.onPrimaryContainer else colors.onSurfaceVariant
-                    )
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Box(contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(
-                        progress = { progress },
-                        modifier = Modifier.size(64.dp),
-                        color = colors.primary,
-                        trackColor = if (isComplete) colors.surface else colors.surfaceContainer,
-                        strokeWidth = 7.dp,
-                        strokeCap = StrokeCap.Round
-                    )
-                    if (isComplete) {
-                        Icon(
-                            imageVector = Icons.Filled.Check,
-                            contentDescription = null,
-                            tint = colors.primary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    } else {
-                        Text(
-                            text = "${(progress * 100).toInt()}%",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.onSurface
-                        )
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(28.dp))
-
-        // 1. Username
-        SectionHeader(number = 1, title = "Personal Identification")
-        Spacer(modifier = Modifier.height(12.dp))
-        OutlinedTextField(
-            value = userProfile.username,
-            onValueChange = viewModel::updateUsername,
-            label = { Text("Username / Student ID") },
-            singleLine = true,
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = colors.surfaceContainerLow,
-                unfocusedContainerColor = colors.surfaceContainerLow,
-                focusedBorderColor = colors.primary,
-                unfocusedBorderColor = colors.outlineVariant,
-                focusedLabelColor = colors.primary,
-                unfocusedLabelColor = colors.onSurfaceVariant
-            )
-        )
-
-        Spacer(modifier = Modifier.height(28.dp))
-
-        // 2. Sleep schedule
-        SectionHeader(number = 2, title = "Circadian Boundaries")
-        Spacer(modifier = Modifier.height(12.dp))
-        TimePickerCard(
-            title = "Wake-Up Time",
-            time = userProfile.wakeUpTime,
-            onTimeChange = { newTime -> viewModel.updateWakeUpTime(newTime) }
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        TimePickerCard(
-            title = "Target Bedtime",
-            time = userProfile.sleepTime,
-            onTimeChange = { newTime -> viewModel.updateSleepTime(newTime) }
-        )
-
-        Spacer(modifier = Modifier.height(28.dp))
-
-        // 3. Google Calendar & Class Schedule Section
-        SectionHeader(number = 3, title = "Academic Schedule (Google Calendar)")
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
-            border = BorderStroke(1.dp, colors.outlineVariant)
-        ) {
-            Column(modifier = Modifier.padding(18.dp)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = if (calendarState.isConnected) "Google Account Connected" else "Google Calendar Sync",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.onSurface
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = if (calendarState.isConnected) {
-                                calendarState.accountEmail ?: "Connected"
-                            } else {
-                                "Offline Mode (Local Storage Only)"
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = colors.onSurfaceVariant
-                        )
-                    }
-
-                    PillBadge(
-                        text = if (calendarState.isConnected) "ONLINE" else "OFFLINE",
-                        containerColor = if (calendarState.isConnected) colors.primaryContainer else colors.surfaceContainerHigh,
-                        contentColor = if (calendarState.isConnected) colors.onPrimaryContainer else colors.onSurfaceVariant
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                if (calendarState.isConnected) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = { calendarVm.syncCalendar() },
-                            enabled = !calendarState.isSyncing,
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            if (calendarState.isSyncing) {
-                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                            } else {
-                                Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text("Sync Now")
-                            }
-                        }
-
-                        TextButton(
-                            onClick = { calendarVm.disconnectGoogleAccount() },
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text("Disconnect", color = colors.error)
-                        }
-                    }
-                } else {
-                    Button(
-                        onClick = {
+                    1 -> Step2AcademicSchedule(
+                        calendarState = calendarState,
+                        onConnectGoogle = {
                             val webClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID
                             val gsoBuilder = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                                 .requestEmail()
@@ -375,179 +357,23 @@ fun ProfileSetupHubScreen(
                             val client = GoogleSignIn.getClient(context, gsoBuilder.build())
                             googleSignInLauncher.launch(client.signInIntent)
                         },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
-                    ) {
-                        Icon(Icons.Default.AccountCircle, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Connect Google Account", fontWeight = FontWeight.Bold)
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-                HorizontalDivider(color = colors.outlineVariant)
-                Spacer(modifier = Modifier.height(14.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Weekly Schedule (${calendarState.events.size}):",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.onSurface
+                        onSync = { calendarVm.syncCalendar() },
+                        onDisconnect = { calendarVm.disconnectGoogleAccount() },
+                        onAddClassClick = { showAddClassDialog = true },
+                        onDeleteClass = { calendarVm.deleteClassEvent(it) }
                     )
-
-                    IconButton(
-                        onClick = { showAddClassDialog = true },
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(colors.secondaryContainer)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Add Class",
-                            tint = colors.onSecondaryContainer,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
-
-                if (calendarState.events.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    calendarState.events.forEach { event ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp)
-                                .background(colors.surfaceContainer, RoundedCornerShape(12.dp))
-                                .padding(horizontal = 12.dp, vertical = 10.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                val dayAbbrev = event.dayOfWeek.take(3).uppercase()
-                                PillBadge(
-                                    text = if (dayAbbrev.isNotBlank()) dayAbbrev else "CLASS",
-                                    containerColor = colors.primaryContainer,
-                                    contentColor = colors.onPrimaryContainer
-                                )
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column {
-                                    Text(
-                                        text = event.summary,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = colors.onSurface
-                                    )
-                                    val locText = if (event.location.isNotBlank()) " • ${event.location}" else ""
-                                    Text(
-                                        text = "${event.startTime} - ${event.endTime}$locText",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = colors.onSurfaceVariant
-                                    )
-                                }
-                            }
-                            IconButton(onClick = { calendarVm.deleteClassEvent(event.id) }) {
-                                Icon(
-                                    imageVector = Icons.Default.Delete,
-                                    contentDescription = "Delete",
-                                    tint = colors.error,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(28.dp))
-
-        // 4. Monitored Applications
-        SectionHeader(number = 4, title = "Monitored Applications")
-        Spacer(modifier = Modifier.height(12.dp))
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
-            border = BorderStroke(1.dp, colors.outlineVariant)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(18.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Tracked Apps",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.onSurface
+                    2 -> Step3MonitoredApps(
+                        onSelectApps = onNavigateToAppSelection
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Select feeds and apps to monitor",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.onSurfaceVariant
+                    3 -> Step4BsmasAssessment(
+                        questions = bsmasQuestions,
+                        answers = bsmasAnswers,
+                        onScoreChange = viewModel::updateBsmasAnswer
                     )
                 }
-
-                Button(
-                    onClick = onNavigateToAppSelection,
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
-                ) {
-                    Text("Select Apps", fontWeight = FontWeight.Bold)
-                }
+                Spacer(modifier = Modifier.height(28.dp))
             }
         }
-
-        Spacer(modifier = Modifier.height(28.dp))
-
-        // 5. BSMAS Section
-        SectionHeader(number = 5, title = "Baseline Assessment (BSMAS)")
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = "Rate your social media usage over the last year (1 = Very Rarely, 5 = Very Often):",
-            style = MaterialTheme.typography.bodySmall,
-            color = colors.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 12.dp)
-        )
-
-        bsmasQuestions.forEachIndexed { index, question ->
-            BsmasQuestionItem(
-                question = question,
-                score = bsmasAnswers[index],
-                onScoreChange = { newScore ->
-                    viewModel.updateBsmasAnswer(index, newScore)
-                }
-            )
-            if (index < bsmasQuestions.size - 1) {
-                Spacer(modifier = Modifier.height(12.dp))
-            }
-        }
-
-        Spacer(modifier = Modifier.height(36.dp))
-
-        GradientButton(
-            text = "Complete Profile",
-            onClick = { viewModel.completeOnboarding(onComplete) },
-            enabled = isComplete,
-            icon = Icons.AutoMirrored.Filled.ArrowForward,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(40.dp))
     }
 
     if (showAddClassDialog) {
@@ -566,6 +392,522 @@ fun ProfileSetupHubScreen(
         )
     }
 }
+
+// -------------------------------------------------------------------------------------------------
+// Step 1: Personal Identification & Circadian Boundaries
+// -------------------------------------------------------------------------------------------------
+@Composable
+private fun Step1IdentityAndSleep(
+    username: String,
+    wakeUpTime: LocalTime,
+    sleepTime: LocalTime,
+    onUsernameChange: (String) -> Unit,
+    onWakeUpTimeChange: (LocalTime) -> Unit,
+    onSleepTimeChange: (LocalTime) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = InkSurface),
+        border = BorderStroke(1.dp, InkBorder)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = null,
+                    tint = IceBlue,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "Personal Identification",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = InkTextPrimary
+                )
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = "Enter your preferred name or student identifier. This stays on-device.",
+                style = MaterialTheme.typography.bodySmall,
+                color = InkTextSecondary
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = username,
+                onValueChange = onUsernameChange,
+                label = { Text("Username / Student ID") },
+                singleLine = true,
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = InkSurfaceHigh,
+                    unfocusedContainerColor = InkSurfaceHigh,
+                    focusedBorderColor = IceBlue,
+                    unfocusedBorderColor = InkBorder,
+                    focusedLabelColor = IceBlue,
+                    unfocusedLabelColor = InkTextMuted,
+                    focusedTextColor = InkTextPrimary,
+                    unfocusedTextColor = InkTextPrimary
+                )
+            )
+            if (username.trim().isNotEmpty() && username.trim().length < 3) {
+                Text(
+                    text = "Must be at least 3 characters",
+                    color = RiskHigh,
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(top = 4.dp, start = 4.dp)
+                )
+            }
+        }
+    }
+
+    Spacer(modifier = Modifier.height(20.dp))
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = InkSurface),
+        border = BorderStroke(1.dp, InkBorder)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Bedtime,
+                    contentDescription = null,
+                    tint = InkAmber,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "Circadian Rhythm Boundaries",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = InkTextPrimary
+                )
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = "Simulens protects your wind-down time before bed and the first half hour after waking.",
+                style = MaterialTheme.typography.bodySmall,
+                color = InkTextSecondary
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            TimePickerCard(
+                title = "Target Bedtime",
+                time = sleepTime,
+                onTimeChange = onSleepTimeChange
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            TimePickerCard(
+                title = "Target Wake-Up Time",
+                time = wakeUpTime,
+                onTimeChange = onWakeUpTimeChange
+            )
+        }
+    }
+}
+
+// -------------------------------------------------------------------------------------------------
+// Step 2: Academic Schedule & Google Calendar
+// -------------------------------------------------------------------------------------------------
+@Composable
+private fun Step2AcademicSchedule(
+    calendarState: CalendarSyncUiState,
+    onConnectGoogle: () -> Unit,
+    onSync: () -> Unit,
+    onDisconnect: () -> Unit,
+    onAddClassClick: () -> Unit,
+    onDeleteClass: (String) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = InkSurface),
+        border = BorderStroke(1.dp, InkBorder)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = if (calendarState.isConnected) "Google Account Connected" else "Google Calendar Sync",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = InkTextPrimary
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = if (calendarState.isConnected) {
+                            calendarState.accountEmail ?: "Connected"
+                        } else {
+                            "Sync lecture hours to pause distractions in class"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = InkTextSecondary
+                    )
+                }
+
+                PillBadge(
+                    text = if (calendarState.isConnected) "ONLINE" else "LOCAL",
+                    containerColor = if (calendarState.isConnected) IceBlueContainer else InkSurfaceHigh,
+                    contentColor = if (calendarState.isConnected) IceBlueLight else InkTextSecondary
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (calendarState.isConnected) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onSync,
+                        enabled = !calendarState.isSyncing,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, IceBlue),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = IceBlue)
+                    ) {
+                        if (calendarState.isSyncing) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = IceBlue)
+                        } else {
+                            Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Sync Now")
+                        }
+                    }
+
+                    TextButton(
+                        onClick = onDisconnect,
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Disconnect", color = RiskHigh)
+                    }
+                }
+            } else {
+                Button(
+                    onClick = onConnectGoogle,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = IceBlue, contentColor = OnIceBlue)
+                ) {
+                    Icon(Icons.Default.AccountCircle, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Connect Google Calendar", fontWeight = FontWeight.Bold)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+            HorizontalDivider(color = InkBorder)
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Weekly Classes (${calendarState.events.size}):",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = InkTextPrimary
+                )
+
+                IconButton(
+                    onClick = onAddClassClick,
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(CircleShape)
+                        .background(InkAmber)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add Class",
+                        tint = InkOnAmber,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+
+            if (calendarState.events.isEmpty()) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = "No classes added yet. You can sync via Google Calendar or tap '+' to manually add your lectures.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = InkTextMuted
+                )
+            } else {
+                Spacer(modifier = Modifier.height(10.dp))
+                calendarState.events.forEach { event ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                            .background(InkSurfaceHigh, RoundedCornerShape(12.dp))
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            val dayAbbrev = event.dayOfWeek.take(3).uppercase()
+                            PillBadge(
+                                text = if (dayAbbrev.isNotBlank()) dayAbbrev else "CLASS",
+                                containerColor = IceBlueContainer,
+                                contentColor = IceBlueLight
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = event.summary,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = InkTextPrimary
+                                )
+                                val locText = if (event.location.isNotBlank()) " • ${event.location}" else ""
+                                Text(
+                                    text = "${event.startTime} - ${event.endTime}$locText",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = InkTextSecondary
+                                )
+                            }
+                        }
+                        IconButton(onClick = { onDeleteClass(event.id) }) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete",
+                                tint = RiskHigh,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// -------------------------------------------------------------------------------------------------
+// Step 3: Monitored Applications
+// -------------------------------------------------------------------------------------------------
+@Composable
+private fun Step3MonitoredApps(
+    onSelectApps: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = InkSurface),
+        border = BorderStroke(1.dp, InkBorder)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.PhoneAndroid,
+                    contentDescription = null,
+                    tint = IceBlue,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "Tracked Applications",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = InkTextPrimary
+                )
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = "Choose the feeds, short-form video apps, and messaging platforms you want Simulens to safeguard.",
+                style = MaterialTheme.typography.bodySmall,
+                color = InkTextSecondary
+            )
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = InkSurfaceHigh,
+                border = BorderStroke(1.dp, InkBorder),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Apps Configuration",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = InkTextPrimary
+                        )
+                        Text(
+                            text = "Default social media apps selected",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = InkTextSecondary
+                        )
+                    }
+
+                    Button(
+                        onClick = onSelectApps,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = IceBlue, contentColor = OnIceBlue)
+                    ) {
+                        Text("Select Apps", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+// -------------------------------------------------------------------------------------------------
+// Step 4: Baseline Assessment (BSMAS)
+// -------------------------------------------------------------------------------------------------
+@Composable
+private fun Step4BsmasAssessment(
+    questions: List<String>,
+    answers: IntArray,
+    onScoreChange: (Int, Int) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = InkSurface),
+        border = BorderStroke(1.dp, InkBorder)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Psychology,
+                    contentDescription = null,
+                    tint = InkAmber,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "Habit Assessment (BSMAS)",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = InkTextPrimary
+                )
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = "The Bergen Social Media Addiction Scale calibrates initial intervention sensitivity. Rate each statement over the past year:",
+                style = MaterialTheme.typography.bodySmall,
+                color = InkTextSecondary
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("1 = Very Rarely", style = MaterialTheme.typography.labelSmall, color = InkTextMuted)
+                Text("5 = Very Often", style = MaterialTheme.typography.labelSmall, color = InkTextMuted)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            questions.forEachIndexed { index, question ->
+                BsmasWizardQuestionItem(
+                    index = index + 1,
+                    question = question,
+                    score = answers[index],
+                    onScoreChange = { newScore -> onScoreChange(index, newScore) }
+                )
+                if (index < questions.size - 1) {
+                    Spacer(modifier = Modifier.height(14.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BsmasWizardQuestionItem(
+    index: Int,
+    question: String,
+    score: Int,
+    onScoreChange: (Int) -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = InkSurfaceHigh,
+        border = BorderStroke(1.dp, if (score in 1..5) IceBlue.copy(alpha = 0.5f) else InkBorder),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(verticalAlignment = Alignment.Top) {
+                Surface(
+                    shape = CircleShape,
+                    color = if (score in 1..5) IceBlue else InkSurfaceLow,
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = index.toString(),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (score in 1..5) OnIceBlue else InkTextSecondary
+                        )
+                    }
+                }
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    text = question,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = InkTextPrimary,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                (1..5).forEach { value ->
+                    val isSelected = score == value
+                    Surface(
+                        onClick = { onScoreChange(value) },
+                        shape = RoundedCornerShape(10.dp),
+                        color = if (isSelected) IceBlue else InkSurfaceLow,
+                        border = BorderStroke(1.dp, if (isSelected) IceBlue else InkBorder),
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 3.dp)
+                            .height(38.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = value.toString(),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                color = if (isSelected) OnIceBlue else InkTextPrimary
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -581,7 +923,8 @@ fun AddClassDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add Class Schedule", fontWeight = FontWeight.Bold) },
+        title = { Text("Add Class Schedule", fontWeight = FontWeight.Bold, color = InkTextPrimary) },
+        containerColor = InkSurface,
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
@@ -589,20 +932,38 @@ fun AddClassDialog(
                     onValueChange = { summary = it },
                     label = { Text("Subject / Class Name") },
                     singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = InkSurfaceHigh,
+                        unfocusedContainerColor = InkSurfaceHigh,
+                        focusedBorderColor = IceBlue,
+                        unfocusedBorderColor = InkBorder,
+                        focusedTextColor = InkTextPrimary,
+                        unfocusedTextColor = InkTextPrimary
+                    ),
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Text("Day of Week:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                Text("Day of Week:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = InkTextPrimary)
                 LazyRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(DayOfWeek.entries.toTypedArray()) { day ->
-                        FilterChip(
-                            selected = selectedDay == day,
+                        val isSelected = selectedDay == day
+                        Surface(
                             onClick = { selectedDay = day },
-                            label = { Text(day.getDisplayName(TextStyle.SHORT, Locale.ENGLISH)) }
-                        )
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (isSelected) IceBlue else InkSurfaceHigh,
+                            border = BorderStroke(1.dp, if (isSelected) IceBlue else InkBorder)
+                        ) {
+                            Text(
+                                text = day.getDisplayName(TextStyle.SHORT, Locale.ENGLISH),
+                                color = if (isSelected) OnIceBlue else InkTextSecondary,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                            )
+                        }
                     }
                 }
 
@@ -617,94 +978,14 @@ fun AddClassDialog(
                         onConfirm(summary, selectedDay, startTime, endTime)
                     }
                 },
-                enabled = summary.isNotBlank()
+                enabled = summary.isNotBlank(),
+                colors = ButtonDefaults.buttonColors(containerColor = IceBlue, contentColor = OnIceBlue)
             ) {
                 Text("Add Class")
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text("Cancel", color = InkTextSecondary) }
         }
     )
-}
-
-@Composable
-fun SectionHeader(number: Int, title: String) {
-    val colors = MaterialTheme.colorScheme
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(32.dp)
-                .background(
-                    brush = Brush.linearGradient(colors = listOf(colors.primary, colors.secondary)),
-                    shape = CircleShape
-                )
-        ) {
-            Text(
-                text = number.toString(),
-                color = colors.onPrimary,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-        }
-        Spacer(modifier = Modifier.width(12.dp))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = colors.onSurface
-        )
-    }
-}
-
-@Composable
-fun BsmasQuestionItem(
-    question: String,
-    score: Int,
-    onScoreChange: (Int) -> Unit
-) {
-    val colors = MaterialTheme.colorScheme
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLow),
-        border = BorderStroke(1.dp, colors.outlineVariant)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = question,
-                style = MaterialTheme.typography.bodyMedium,
-                color = colors.onSurface
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                (1..5).forEach { value ->
-                    FilterChip(
-                        selected = score == value,
-                        onClick = { onScoreChange(value) },
-                        label = {
-                            Text(
-                                text = value.toString(),
-                                fontWeight = if (score == value) FontWeight.Bold else FontWeight.Normal
-                            )
-                        },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = colors.primary,
-                            selectedLabelColor = colors.onPrimary
-                        )
-                    )
-                }
-            }
-        }
-    }
 }
