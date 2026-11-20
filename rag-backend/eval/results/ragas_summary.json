@@ -1,0 +1,297 @@
+{
+  "timestamp": 1795172892.9143605,
+  "overall_summary": {
+    "Total Samples": 16,
+    "Hit Rate@K": 1.0,
+    "MRR": 0.8646,
+    "Avg Cosine Sim": 0.7695
+  },
+  "category_summary": [
+    {
+      "Category": "academic_focus",
+      "Samples": 4,
+      "Hit Rate@K": 1.0,
+      "MRR": 0.875,
+      "Avg Cosine Sim": 0.7373400330543518
+    },
+    {
+      "Category": "actionable_strategies",
+      "Samples": 4,
+      "Hit Rate@K": 1.0,
+      "MRR": 0.75,
+      "Avg Cosine Sim": 0.8374357223510742
+    },
+    {
+      "Category": "habit_reinforcement",
+      "Samples": 4,
+      "Hit Rate@K": 1.0,
+      "MRR": 1.0,
+      "Avg Cosine Sim": 0.7934439480304718
+    },
+    {
+      "Category": "sleep_circadian",
+      "Samples": 4,
+      "Hit Rate@K": 1.0,
+      "MRR": 0.8333333333333334,
+      "Avg Cosine Sim": 0.7097397595643997
+    }
+  ],
+  "traces": [
+    {
+      "id": "academic_01",
+      "category": "academic_focus",
+      "question": "How does using social media during study sessions affect my concentration and academic performance?",
+      "top_score": 0.7643628716468811,
+      "hit_rate": 1.0,
+      "mrr": 1.0,
+      "response": "Using a phone while you\u2019re studying can pull your attention away from the material. Studies show that notifications and the temptation to scroll can interrupt working\u2011memory tasks and slow reaction times, which in turn can lower grades\u202f[3]. Even just having a phone nearby has been linked to poorer academic performance",
+      "retrieved_titles": [
+        "Banodha & Saini (2025) Consequences of social media addiction: mental, social and physical health (Indian Journal of Psychology and Psychotherapy)",
+        "Social network sites as an archetype of techno-social stress: systematic review",
+        "Ahmed et al. Social media use, mental health and sleep: systematic review with meta-analyses",
+        "Smartphone screen time reduction improves mental health: randomized controlled trial (BMC Medicine, 2025)"
+      ],
+      "sources_cited": 1
+    },
+    {
+      "id": "academic_02",
+      "category": "academic_focus",
+      "question": "Why do I feel mentally exhausted and distracted even after putting my phone away to study?",
+      "top_score": 0.7014411687850952,
+      "hit_rate": 1.0,
+      "mrr": 0.5,
+      "response": "It\u2019s common to feel drained after a phone break. Even when you put the phone away, the brain can still be \u201cwired\u201d for the constant prompts and quick rewards that social media offers. Studies show that heavy smartphone use can reduce working\u2011memory capacity and make it harder to sustain attention, effects that can linger for a while after the device is removed\u202f[3]. Additionally, the habit\u2011forming cycle of motivation, ability, and prompts means that once you\u2019ve been used to instant notifications, your brain may still expect that kind of stimulation, making focused study feel more exhausting\u202f[1].\n\n**Practical tips**\n\n1. **Create a \u201cstudy\u2011only\u201d zone** \u2013 keep the phone out of reach (e.g., in another room) and use a physical timer or a simple \u201cfocus\u201d app that blocks notifications during study blocks\u202f[1].\n2. **Schedule short, regular breaks** \u2013 every 25\u201330\u202fminutes, step away from the desk, stretch, or do a quick walk. This helps reset attention and reduces the feeling of mental fatigue\u202f[3].\n\nIf the exhaustion persists or feels overwhelming, consider talking to a campus counsellor for personalized support.",
+      "retrieved_titles": [
+        "Smartphone screen time reduction improves mental health: randomized controlled trial (BMC Medicine, 2025)",
+        "Social network sites as an archetype of techno-social stress: systematic review",
+        "Smartphone screen time reduction improves mental health: randomized controlled trial (BMC Medicine, 2025)",
+        "Social network sites as an archetype of techno-social stress: systematic review"
+      ],
+      "sources_cited": 2
+    },
+    {
+      "id": "academic_03",
+      "category": "academic_focus",
+      "question": "Does checking notifications during lectures hurt student academic performance?",
+      "top_score": 0.6526050567626953,
+      "hit_rate": 1.0,
+      "mrr": 1.0,
+      "response": "Checking notifications while you\u2019re in class can interfere with learning.  Studies show that even the mere presence of a phone can lower working\u2011memory performance, and that notifications can impair task performance as much as texting or talking on the phone [1].  At university, problematic smartphone use has been linked to slightly lower grades, though the effect is modest [1].\n\n**Practical tips**\n\n1. **Turn off or mute notifications** during lectures.  Many phones let you set \u201cDo\u202fNot\u202fDisturb\u201d or allow notifications only from a few trusted apps, which reduces the urge to check the screen [2].\n2. **Create a \u201cfocus\u201d habit**: keep your phone in a bag or on a desk out of sight, and only glance at it when you\u2019ve finished a lecture or during breaks.\n\nIf you find yourself still struggling, it might help to talk with a campus counsellor or a trusted friend about setting boundaries.",
+      "retrieved_titles": [
+        "Social network sites as an archetype of techno-social stress: systematic review",
+        "Social network sites as an archetype of techno-social stress: systematic review",
+        "Smartphone screen time reduction improves mental health: randomized controlled trial (BMC Medicine, 2025)",
+        "Smartphone screen time reduction improves mental health: randomized controlled trial (BMC Medicine, 2025)"
+      ],
+      "sources_cited": 2
+    },
+    {
+      "id": "academic_04",
+      "category": "academic_focus",
+      "question": "How many hours of daily smartphone screen time are considered detrimental to student mental health and focus?",
+      "top_score": 0.8309510350227356,
+      "hit_rate": 1.0,
+      "mrr": 1.0,
+      "response": "",
+      "retrieved_titles": [
+        "Smartphone screen time reduction improves mental health: randomized controlled trial (BMC Medicine, 2025)",
+        "Smartphone screen time reduction improves mental health: randomized controlled trial (BMC Medicine, 2025)",
+        "Digital detox strategies and mental health: scoping review of why, where and how",
+        "Kolhe & Naik (2025) Digital detox as a means to enhance eudaimonic well-being (Frontiers in Human Dynamics)"
+      ],
+      "sources_cited": 4
+    },
+    {
+      "id": "sleep_01",
+      "category": "sleep_circadian",
+      "question": "How does using my phone late at night disrupt my sleep?",
+      "top_score": 0.6854884028434753,
+      "hit_rate": 1.0,
+      "mrr": 1.0,
+      "response": "Using your phone late at night can push your bedtime later and make it harder to fall asleep or stay asleep. The light from screens, especially blue light, can suppress melatonin, the hormone that signals sleep, and the mental stimulation of notifications or scrolling keeps your brain active when it should be winding down. Studies have found that people who use their phones at night tend to go to bed later and report poorer sleep quality, although the link isn\u2019t very strong and varies between individuals [1][2].\n\n**Practical tips**\n\n1. **Create a \u201cphone\u2011free\u201d window** \u2013 set a reminder 30\u201360\u202fminutes before bed and keep your phone in another room or use airplane mode.  \n2. **Use blue\u2011light\u2011blocking settings** \u2013 enable night\u2011mode or a blue\u2011light filter on your device to reduce the sleep\u2011disrupting light.  \n\nIf you notice persistent sleep problems, consider talking to a campus counsellor or health professional for personalized support.",
+      "retrieved_titles": [
+        "Social network sites as an archetype of techno-social stress: systematic review",
+        "Smartphone screen time reduction improves mental health: randomized controlled trial (BMC Medicine, 2025)",
+        "Social network sites as an archetype of techno-social stress: systematic review",
+        "Smartphone screen time reduction improves mental health: randomized controlled trial (BMC Medicine, 2025)"
+      ],
+      "sources_cited": 2
+    },
+    {
+      "id": "sleep_02",
+      "category": "sleep_circadian",
+      "question": "Will reducing my screen time before bed actually improve my sleep quality?",
+      "top_score": 0.7324943542480469,
+      "hit_rate": 1.0,
+      "mrr": 1.0,
+      "response": "Reducing screen time before bed may help some people sleep better, but the evidence isn\u2019t uniform. In one trial, the intervention that cut nighttime phone use lowered average sleep\u2011quality scores only slightly, while another study found a clinically meaningful improvement of about 1.2 points on a 10\u2011point scale during the intervention period\u202f[2]. Overall, the research shows mixed results\u2014some participants saw better sleep, others saw little change\u202f[1].\n\nIf you want to try it, you could:\n\n1. **Set a \u201cno\u2011screen\u201d window** \u2013 stop using your phone at least 30\u201360\u202fminutes before you plan to sleep.  \n2. **Use blue\u2011light\u2011blocking settings** or a night\u2011mode app to reduce the stimulating light that can interfere with melatonin production.\n\nIf you notice persistent sleep problems, consider talking to a campus counsellor or a healthcare professional for personalized guidance.",
+      "retrieved_titles": [
+        "Smartphone screen time reduction improves mental health: randomized controlled trial (BMC Medicine, 2025)",
+        "Smartphone screen time reduction improves mental health: randomized controlled trial (BMC Medicine, 2025)",
+        "Digital detox strategies and mental health: scoping review of why, where and how",
+        "Digital detox strategies and mental health: scoping review of why, where and how"
+      ],
+      "sources_cited": 2
+    },
+    {
+      "id": "sleep_03",
+      "category": "sleep_circadian",
+      "question": "Why do students stay up late scrolling social media even when exhausted?",
+      "top_score": 0.6916236877441406,
+      "hit_rate": 1.0,
+      "mrr": 1.0,
+      "response": "Students often stay up scrolling because social\u2011media apps are designed to keep you engaged. Short, varied posts, notifications, and the feeling that you\u2019re \u201cmissing out\u201d can trigger a quick dopamine release that\u2019s hard to resist, even when you\u2019re tired. Research shows that passive scrolling and \u201cproblematic\u201d smartphone use are linked to poorer sleep, lower mood, and reduced academic performance, especially when people use their phones late at night [3]. Yet some students also turn to social media for quick social support or to feel connected, which can feel rewarding in the moment [1].\n\n**Practical tips**  \n1. Set a nightly \u201cscreen\u2011off\u201d time and use built\u2011in app limits or a nudge\u2011based reminder to reduce late\u2011night use\u2014studies found this can lower problematic use scores [4].  \n2. Turn off non\u2011essential notifications or use \u201cdo\u2011not\u2011disturb\u201d mode after a set hour; this reduces the urge to check the phone repeatedly [3].  \n\nIf staying up feels overwhelming,",
+      "retrieved_titles": [
+        "Smartphone screen time reduction improves mental health: randomized controlled trial (BMC Medicine, 2025)",
+        "Social network sites as an archetype of techno-social stress: systematic review",
+        "Digital detox strategies and mental health: scoping review of why, where and how",
+        "Banodha & Saini (2025) Consequences of social media addiction: mental, social and physical health (Indian Journal of Psychology and Psychotherapy)"
+      ],
+      "sources_cited": 3
+    },
+    {
+      "id": "sleep_04",
+      "category": "sleep_circadian",
+      "question": "What physical and biological impacts does excessive late-night screen time have on students?",
+      "top_score": 0.729352593421936,
+      "hit_rate": 1.0,
+      "mrr": 0.3333333333333333,
+      "response": "Late\u2011night screen use is linked mainly to poorer sleep, which in turn can affect how well you think and feel during the day. Studies show that using a phone at night is associated with later bedtimes and lower sleep quality, and that this can lead to reduced cognitive performance and",
+      "retrieved_titles": [
+        "Smartphone screen time reduction improves mental health: randomized controlled trial (BMC Medicine, 2025)",
+        "Smartphone screen time reduction improves mental health: randomized controlled trial (BMC Medicine, 2025)",
+        "Kolhe & Naik (2025) Digital detox as a means to enhance eudaimonic well-being (Frontiers in Human Dynamics)",
+        "Social network sites as an archetype of techno-social stress: systematic review"
+      ],
+      "sources_cited": 4
+    },
+    {
+      "id": "habit_01",
+      "category": "habit_reinforcement",
+      "question": "What is the psychological relationship between Fear of Missing Out (FoMO) and social media overuse?",
+      "top_score": 0.7825970649719238,
+      "hit_rate": 1.0,
+      "mrr": 1.0,
+      "response": "I\u2019m sorry, but I don\u2019t have reliable information on the specific link between Fear of Missing Out (FoMO) and social media overuse in the sources I have. It might be helpful to discuss this with a campus counsellor or mental\u2011health professional who can provide more tailored guidance.",
+      "retrieved_titles": [
+        "K\u0131l\u0131n\u00e7el et al. (2025) Social media addiction, loneliness and fear of missing out: a meta-analysis (Psychiatry and Clinical Psychopharmacology)",
+        "Zhang et al. (2025) Social media addiction and anxiety, depression, FoMO, loneliness, self-esteem in students: systematic review & meta-analysis (PLOS ONE)",
+        "Zhang et al. (2025) Social media addiction and anxiety, depression, FoMO, loneliness, self-esteem in students: systematic review & meta-analysis (PLOS ONE)",
+        "Social network sites as an archetype of techno-social stress: systematic review"
+      ],
+      "sources_cited": 4
+    },
+    {
+      "id": "habit_02",
+      "category": "habit_reinforcement",
+      "question": "Can social media use increase feelings of loneliness and depression in students?",
+      "top_score": 0.8372653722763062,
+      "hit_rate": 1.0,
+      "mrr": 1.0,
+      "response": "Yes. Several reviews find that heavy or passive use of social media is linked to higher reports of loneliness, depression, and anxiety among young people\u202f[1][2][4]. The associations are strongest when scrolling is passive rather than interactive, and they may be driven by how the time is spent rather than the platform itself\u202f[4]. However, the research is correlational, so it doesn\u2019t prove that social media causes these feelings\u2014other factors can also play a role\u202f[1].\n\n**Practical steps you might try**\n\n1. **Set a daily \u201cscroll\u2011limit\u201d** \u2013 e.g., 10\u202fminutes per platform, and use a timer or app\u2011based reminder\u202f[4].\n2. **Replace some screen time with offline social or physical activities** that you enjoy, such as a walk, a hobby, or a face\u2011to\u2011face chat\u202f[4].\n\nIf you notice persistent sadness or loneliness, consider talking to a trusted friend, family member, or campus counsellor for support.",
+      "retrieved_titles": [
+        "Zhang et al. (2025) Social media addiction and anxiety, depression, FoMO, loneliness, self-esteem in students: systematic review & meta-analysis (PLOS ONE)",
+        "Zhang et al. (2025) Social media addiction and anxiety, depression, FoMO, loneliness, self-esteem in students: systematic review & meta-analysis (PLOS ONE)",
+        "Ahmed et al. Social media use, mental health and sleep: systematic review with meta-analyses",
+        "Banodha & Saini (2025) Consequences of social media addiction: mental, social and physical health (Indian Journal of Psychology and Psychotherapy)"
+      ],
+      "sources_cited": 3
+    },
+    {
+      "id": "habit_03",
+      "category": "habit_reinforcement",
+      "question": "What is techno-social stress and how does it manifest in daily student life?",
+      "top_score": 0.7650169730186462,
+      "hit_rate": 1.0,
+      "mrr": 1.0,
+      "response": "",
+      "retrieved_titles": [
+        "Social network sites as an archetype of techno-social stress: systematic review",
+        "Social network sites as an archetype of techno-social stress: systematic review",
+        "Digital detox strategies and mental health: scoping review of why, where and how",
+        "Banodha & Saini (2025) Consequences of social media addiction: mental, social and physical health (Indian Journal of Psychology and Psychotherapy)"
+      ],
+      "sources_cited": 4
+    },
+    {
+      "id": "habit_04",
+      "category": "habit_reinforcement",
+      "question": "How does intensive social media consumption impact students' self-esteem and body image?",
+      "top_score": 0.788896381855011,
+      "hit_rate": 1.0,
+      "mrr": 1.0,
+      "response": "Intensive use of social media has been linked to lower self\u2011esteem and poorer body image in students. Studies report that frequent scrolling, especially on image\u2011heavy platforms, is associated with increased body\u2011image dissatisfaction and stress about appearance [1][2]. When students compare themselves to edited or \u201cfitspiration\u201d posts, they often feel less satisfied with their own bodies, which can erode confidence and self\u2011worth [2].  \n\n**Practical tips**  \n1. **Curate your feed** \u2013 follow accounts that celebrate diverse bodies and realistic lifestyles, and consider muting or unfollowing content that triggers negative comparisons.  \n2. **Set screen limits",
+      "retrieved_titles": [
+        "Zhang et al. (2025) Social media addiction and anxiety, depression, FoMO, loneliness, self-esteem in students: systematic review & meta-analysis (PLOS ONE)",
+        "Zhang et al. (2025) Social media addiction and anxiety, depression, FoMO, loneliness, self-esteem in students: systematic review & meta-analysis (PLOS ONE)",
+        "Smartphone screen time reduction improves mental health: randomized controlled trial (BMC Medicine, 2025)",
+        "Digital detox strategies and mental health: scoping review of why, where and how"
+      ],
+      "sources_cited": 2
+    },
+    {
+      "id": "strategy_01",
+      "category": "actionable_strategies",
+      "question": "What actionable steps can I take to reduce my screen time without quitting cold turkey?",
+      "top_score": 0.7970324158668518,
+      "hit_rate": 1.0,
+      "mrr": 1.0,
+      "response": "Here are two simple, evidence\u2011based tweaks you can try without giving up your phone entirely:\n\n1. **Turn off or limit notifications** \u2013 A key driver of scrolling is the constant ping of new posts. Disabling non\u2011essential alerts (or setting them to \u201cquiet\u201d mode) reduces the prompts that pull you back in. You can also switch your phone to a greyscale or dark\u2011mode theme, which makes the interface less visually enticing and can lower the urge to keep scrolling\u202f[2].  \n\n2. **Set clear, short\u2011term screen\u2011time limits** \u2013 Use your phone\u2019s built\u2011in \u201cScreen Time\u201d or \u201cDigital Well\u2011being\u201d tracker to cap the total minutes you spend on social media each day. Even a modest daily cap (e.g., 30\u201345\u202fminutes) has been shown to cut overall usage and improve mood during the intervention period\u202f[1][4].  \n\nTry one or both of these steps for a couple",
+      "retrieved_titles": [
+        "Digital detox strategies and mental health: scoping review of why, where and how",
+        "Digital detox strategies and mental health: scoping review of why, where and how",
+        "Smartphone screen time reduction improves mental health: randomized controlled trial (BMC Medicine, 2025)",
+        "Smartphone screen time reduction improves mental health: randomized controlled trial (BMC Medicine, 2025)"
+      ],
+      "sources_cited": 3
+    },
+    {
+      "id": "strategy_02",
+      "category": "actionable_strategies",
+      "question": "Does a digital detox actually improve well-being according to recent scientific studies?",
+      "top_score": 0.872428297996521,
+      "hit_rate": 1.0,
+      "mrr": 1.0,
+      "response": "Recent studies suggest that taking a break from screens\u2014often called a \u201cdigital detox\u201d\u2014can boost well\u2011being. One randomized trial of a short, nudge\u2011based intervention showed participants who cut down phone use reported better sleep, less screen time, and more focus and social interaction, with modest mood improvements and reduced depressive symptoms [2][3]. The research also found that people who followed more of the suggested strategies (e.g., turning off notifications, setting limits) saw larger gains in mood and lower phone\u2011use scores [3].  \n\nResearch on social media itself indicates that passive scrolling is linked to poorer mood and body image, while active, supportive use can enhance well\u2011being [1]. A brief detox that reduces passive consumption and replaces it with active, meaningful activities may therefore help improve mental health.\n\n**Practical tips**  \n1",
+      "retrieved_titles": [
+        "Kolhe & Naik (2025) Digital detox as a means to enhance eudaimonic well-being (Frontiers in Human Dynamics)",
+        "Kolhe & Naik (2025) Digital detox as a means to enhance eudaimonic well-being (Frontiers in Human Dynamics)",
+        "Digital detox strategies and mental health: scoping review of why, where and how",
+        "Digital detox strategies and mental health: scoping review of why, where and how"
+      ],
+      "sources_cited": 3
+    },
+    {
+      "id": "strategy_03",
+      "category": "actionable_strategies",
+      "question": "What mental health effects can I expect if I reduce my smartphone screen time for three weeks?",
+      "top_score": 0.8829723000526428,
+      "hit_rate": 1.0,
+      "mrr": 1.0,
+      "response": "Reducing screen time for a few weeks can help you feel better in a few ways. In two short\u2011term trials, participants who cut back on smartphone use reported fewer symptoms of depression and, in one study, better sleep quality after just 2\u202fweeks\u202f[1][2]. The changes were modest but consistent across the groups that chose to limit notifications, switch to greyscale, or set screen\u2011time limits. These studies suggest a link between less phone use and improved mood and sleep, though the evidence is correlational and may vary from person to person\u202f[1][2].\n\n**Practical steps you might try**\n\n1. Pick one or two simple \u201c",
+      "retrieved_titles": [
+        "Smartphone screen time reduction improves mental health: randomized controlled trial (BMC Medicine, 2025)",
+        "Smartphone screen time reduction improves mental health: randomized controlled trial (BMC Medicine, 2025)",
+        "Digital detox strategies and mental health: scoping review of why, where and how",
+        "Social network sites as an archetype of techno-social stress: systematic review"
+      ],
+      "sources_cited": 2
+    },
+    {
+      "id": "strategy_04",
+      "category": "actionable_strategies",
+      "question": "Why do people experience a rebound effect after finishing a digital detox, and how can it be prevented?",
+      "top_score": 0.7973098754882812,
+      "hit_rate": 1.0,
+      "mrr": 0.0,
+      "response": "I\u2019m sorry, but none of the sources I have contain information about why a rebound effect might occur after a digital detox or how to prevent it. It might be helpful to discuss this with a campus counsellor or another trusted professional who can offer personalized guidance.",
+      "retrieved_titles": [
+        "Kolhe & Naik (2025) Digital detox as a means to enhance eudaimonic well-being (Frontiers in Human Dynamics)",
+        "Kolhe & Naik (2025) Digital detox as a means to enhance eudaimonic well-being (Frontiers in Human Dynamics)",
+        "Digital detox strategies and mental health: scoping review of why, where and how",
+        "Digital detox strategies and mental health: scoping review of why, where and how"
+      ],
+      "sources_cited": 4
+    }
+  ]
+}

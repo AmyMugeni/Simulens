@@ -1,0 +1,114 @@
+[
+  {
+    "id": "academic_01",
+    "category": "academic_focus",
+    "question": "How does using social media during study sessions affect my concentration and academic performance?",
+    "ground_truth": "Using social media during study sessions causes cognitive fragmentation and techno-social stress. Research indicates that frequent interruptions and social overload degrade focus, while excessive screen time is associated with higher anxiety and lower academic well-being. Multitasking between social feeds and coursework creates attention residue, reducing retention and task performance.",
+    "reference_paper": "Social network sites as an archetype of techno-social stress: systematic review"
+  },
+  {
+    "id": "academic_02",
+    "category": "academic_focus",
+    "question": "Why do I feel mentally exhausted and distracted even after putting my phone away to study?",
+    "ground_truth": "Techno-social stress and communication overload from social networking platforms create ongoing mental fatigue. Even when the device is set aside, persistent anticipation of notifications, peer availability pressure, and social comparison continue to tax cognitive working memory and executive control.",
+    "reference_paper": "Social network sites as an archetype of techno-social stress: systematic review"
+  },
+  {
+    "id": "academic_03",
+    "category": "academic_focus",
+    "question": "Does checking notifications during lectures hurt student academic performance?",
+    "ground_truth": "Yes, empirical studies on techno-stress and student engagement show that frequent notification checking during lectures fragments attention. It triggers social overload and cognitive disruption, impairing the student's ability to encode complex concepts and participate effectively in academic activities.",
+    "reference_paper": "Social network sites as an archetype of techno-social stress: systematic review"
+  },
+  {
+    "id": "academic_04",
+    "category": "academic_focus",
+    "question": "How many hours of daily smartphone screen time are considered detrimental to student mental health and focus?",
+    "ground_truth": "Evidence from randomized and cohort studies indicates that smartphone screen time can become detrimental to mental health and well-being from as little as two hours per day depending on the purpose of use, and from four hours per day regardless of the usage purpose. Beyond four hours, psychological symptoms and cognitive fatigue increase substantially.",
+    "reference_paper": "Smartphone screen time reduction improves mental health: randomized controlled trial (BMC Medicine, 2025)"
+  },
+  {
+    "id": "sleep_01",
+    "category": "sleep_circadian",
+    "question": "How does using my phone late at night disrupt my sleep?",
+    "ground_truth": "Late-night smartphone and social media use disrupts sleep through two primary mechanisms: psychological arousal triggered by stimulating social feeds or emotional notifications, and circadian disturbance from screen blue light suppressing melatonin synthesis. Systematic reviews confirm this leads to delayed sleep onset latency, shorter sleep duration, and poorer overall sleep quality.",
+    "reference_paper": "Ahmed et al. Social media use, mental health and sleep: systematic review with meta-analyses"
+  },
+  {
+    "id": "sleep_02",
+    "category": "sleep_circadian",
+    "question": "Will reducing my screen time before bed actually improve my sleep quality?",
+    "ground_truth": "Yes. In a randomized controlled trial published in BMC Medicine (2025), reducing daily smartphone screen time resulted in statistically significant improvements in sleep quality (Mean Difference = 2.59, 95% CI [0.66, 4.51]) alongside reductions in stress and depressive symptoms, confirming a causal link between screen time reduction and better sleep.",
+    "reference_paper": "Smartphone screen time reduction improves mental health: randomized controlled trial (BMC Medicine, 2025)"
+  },
+  {
+    "id": "sleep_03",
+    "category": "sleep_circadian",
+    "question": "Why do students stay up late scrolling social media even when exhausted?",
+    "ground_truth": "Bedtime procrastination and habitual scrolling are driven by adaptive algorithm feed mechanics, variable reward loops, and Fear of Missing Out (FoMO). Students often use nighttime scrolling as an emotional distraction or coping mechanism for daytime stress, which paradoxically sustains autonomic arousal and displaces sleep.",
+    "reference_paper": "Digital detox strategies and mental health: scoping review of why, where and how"
+  },
+  {
+    "id": "sleep_04",
+    "category": "sleep_circadian",
+    "question": "What physical and biological impacts does excessive late-night screen time have on students?",
+    "ground_truth": "A triadic perspective review demonstrates that excessive screen time triggers physical issues including digital eye strain, forward neck posture fatigue, and circadian desynchronization. Combined with social media-induced mental stress, this impairs sleep efficiency and next-day energy levels.",
+    "reference_paper": "Banodha & Saini (2025) Consequences of social media addiction: mental, social and physical health"
+  },
+  {
+    "id": "habit_01",
+    "category": "habit_reinforcement",
+    "question": "What is the psychological relationship between Fear of Missing Out (FoMO) and social media overuse?",
+    "ground_truth": "Meta-analyses demonstrate a strong, statistically significant positive correlation between Fear of Missing Out (FoMO) and problematic social media use. FoMO acts as a key psychological driver, compelling students to check feeds repeatedly to avoid perceived social exclusion, which in turn reinforces compulsive usage patterns.",
+    "reference_paper": "K\u0131l\u0131n\u00e7el et al. (2025) Social media addiction, loneliness and fear of missing out: a meta-analysis"
+  },
+  {
+    "id": "habit_02",
+    "category": "habit_reinforcement",
+    "question": "Can social media use increase feelings of loneliness and depression in students?",
+    "ground_truth": "Yes. A 2025 systematic review and meta-analysis in PLOS ONE by Zhang et al. confirmed that problematic social media use is significantly positively correlated with loneliness, depression, and anxiety, and negatively correlated with self-esteem in students. Passive consumption and upward social comparison replace genuine interpersonal connection.",
+    "reference_paper": "Zhang et al. (2025) Social media addiction and anxiety, depression, FoMO, loneliness, self-esteem in students: systematic review & meta-analysis (PLOS ONE)"
+  },
+  {
+    "id": "habit_03",
+    "category": "habit_reinforcement",
+    "question": "What is techno-social stress and how does it manifest in daily student life?",
+    "ground_truth": "Techno-social stress arises from personal interactions mediated by social platforms. It manifests through techno-overload (too much digital information), social overload (excessive demands to maintain social connections), and invasion of privacy, resulting in cognitive fatigue, exhaustion, and lowered psychological well-being.",
+    "reference_paper": "Social network sites as an archetype of techno-social stress: systematic review"
+  },
+  {
+    "id": "habit_04",
+    "category": "habit_reinforcement",
+    "question": "How does intensive social media consumption impact students' self-esteem and body image?",
+    "ground_truth": "Meta-analytic evidence shows that heavy social media exposure is negatively associated with student self-esteem. Upward social comparison with idealized peer profiles increases appearance-related dissatisfaction and feelings of inadequacy. Conversely, studies have documented improvements in appearance- and weight-esteem after three weeks of reduced social media time.",
+    "reference_paper": "Zhang et al. (2025) Social media addiction and anxiety, depression, FoMO, loneliness, self-esteem in students: systematic review & meta-analysis (PLOS ONE)"
+  },
+  {
+    "id": "strategy_01",
+    "category": "actionable_strategies",
+    "question": "What actionable steps can I take to reduce my screen time without quitting cold turkey?",
+    "ground_truth": "Evidence-based digital detox reviews recommend tailored micro-interventions rather than abrupt abstinence. Effective steps include: 1) setting app-specific usage boundaries, 2) turning off non-essential notifications to reduce trigger frequency, 3) establishing phone-free bedtime windows, 4) switching screens to grayscale to diminish variable visual reward, and 5) replacing screen time with intentional offline social or physical activities.",
+    "reference_paper": "Digital detox strategies and mental health: scoping review of why, where and how"
+  },
+  {
+    "id": "strategy_02",
+    "category": "actionable_strategies",
+    "question": "Does a digital detox actually improve well-being according to recent scientific studies?",
+    "ground_truth": "Yes. Recent research including Kolhe & Naik (2025) demonstrates that a deliberate digital detox significantly enhances eudaimonic well-being by fostering purposeful living, mindfulness, and self-actualization. Furthermore, a 2025 randomized controlled trial confirmed that cutting screen time causally reduces stress and depressive symptoms while improving overall subjective well-being.",
+    "reference_paper": "Kolhe & Naik (2025) Digital detox as a means to enhance eudaimonic well-being (Frontiers in Human Dynamics)"
+  },
+  {
+    "id": "strategy_03",
+    "category": "actionable_strategies",
+    "question": "What mental health effects can I expect if I reduce my smartphone screen time for three weeks?",
+    "ground_truth": "In a pre-registered randomized controlled trial (BMC Medicine, 2025), a three-week smartphone screen time reduction demonstrated small to medium effect sizes across multiple health indicators: significant decreases in depressive symptoms (Mean Difference = 2.11) and perceived stress (MD = 6.91), along with significant improvements in sleep quality (MD = 2.59) and subjective well-being (MD = -1.54).",
+    "reference_paper": "Smartphone screen time reduction improves mental health: randomized controlled trial (BMC Medicine, 2025)"
+  },
+  {
+    "id": "strategy_04",
+    "category": "actionable_strategies",
+    "question": "Why do people experience a rebound effect after finishing a digital detox, and how can it be prevented?",
+    "ground_truth": "The BMC Medicine (2025) trial noted that screen time rapidly rebounded toward baseline levels after the intervention ended because the underlying habits and environmental cues remained unchanged. Prevention requires building long-term sustainable behavioral friction (like physical charging stations outside the bedroom), intentional scheduling, and engaging in fulfilling offline replacement habits rather than relying purely on temporary restriction.",
+    "reference_paper": "Smartphone screen time reduction improves mental health: randomized controlled trial (BMC Medicine, 2025)"
+  }
+]
