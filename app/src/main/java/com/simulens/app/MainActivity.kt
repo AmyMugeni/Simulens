@@ -67,8 +67,9 @@ class MainActivity : ComponentActivity() {
                     LaunchedEffect(pendingSeed?.id, route) {
                         if (pendingSeed == null || route == null) return@LaunchedEffect
                         chatLaunch.dropIfStale()
-                        if (route == OnboardingRoutes.SPLASH || route == OnboardingRoutes.PERMISSIONS ||
-                            route == OnboardingRoutes.GATEWAY || route == OnboardingRoutes.SETUP_HUB
+                        if (route == OnboardingRoutes.SPLASH || route == OnboardingRoutes.WELCOME_MYTHS ||
+                            route == OnboardingRoutes.HOW_IT_WORKS || route == OnboardingRoutes.PERMISSIONS ||
+                            route == OnboardingRoutes.SETUP_HUB
                         ) return@LaunchedEffect
                         if (route != MainRoutes.ASSISTANT) {
                             navController.navigate(MainRoutes.ASSISTANT) { launchSingleTop = true }
@@ -83,7 +84,7 @@ class MainActivity : ComponentActivity() {
                             SplashScreen(
                                 viewModel = onboardingViewModel,
                                 onNavigateToOnboarding = {
-                                    navController.navigate(OnboardingRoutes.PERMISSIONS) {
+                                    navController.navigate(OnboardingRoutes.WELCOME_MYTHS) {
                                         popUpTo(OnboardingRoutes.SPLASH) { inclusive = true }
                                     }
                                 },
@@ -95,16 +96,24 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        composable(OnboardingRoutes.PERMISSIONS) {
-                            PermissionsScreen(
+                        composable(OnboardingRoutes.WELCOME_MYTHS) {
+                            com.simulens.app.ui.onboarding.WelcomeMythsScreen(
                                 onNavigateNext = {
-                                    navController.navigate(OnboardingRoutes.GATEWAY)
+                                    navController.navigate(OnboardingRoutes.HOW_IT_WORKS)
                                 }
                             )
                         }
 
-                        composable(OnboardingRoutes.GATEWAY) {
-                            ProfileGatewayScreen(
+                        composable(OnboardingRoutes.HOW_IT_WORKS) {
+                            com.simulens.app.ui.onboarding.HowItWorksScreen(
+                                onNavigateNext = {
+                                    navController.navigate(OnboardingRoutes.PERMISSIONS)
+                                }
+                            )
+                        }
+
+                        composable(OnboardingRoutes.PERMISSIONS) {
+                            PermissionsScreen(
                                 onNavigateNext = {
                                     navController.navigate(OnboardingRoutes.SETUP_HUB)
                                 }
@@ -233,6 +242,8 @@ class MainActivity : ComponentActivity() {
 
 private object OnboardingRoutes {
     const val SPLASH = "splash"
+    const val WELCOME_MYTHS = "welcome_myths"
+    const val HOW_IT_WORKS = "how_it_works"
     const val PERMISSIONS = "permissions"
     const val GATEWAY = "gateway"
     const val SETUP_HUB = "setup_hub"
