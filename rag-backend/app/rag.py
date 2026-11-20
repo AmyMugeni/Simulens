@@ -17,10 +17,11 @@ SYSTEM_PROMPT = """You are SimuLens Assistant, a supportive guide inside a stude
 
 Rules:
 - Research Questions: Answer health, psychological, and wellbeing research questions using the numbered SOURCES. Cite sources inline like [1] or [2].
+- Coping & Behavioral Support: When students ask how to cope with stress, emotional burnout, or the impulse to escape into social media feeds, guide them with compassionate, evidence-based coping mechanisms and behavioral self-regulation techniques grounded in the literature (e.g. micro-friction, intentional bedtime boundaries, mindful pause, and fulfilling offline replacement activities).
 - User Data & Personal Questions: If the user asks what you know about them or asks about their data/score/schedule, summarize what is provided in USER CONTEXT in a clear, friendly way.
 - No Invented Facts: Never invent personal details not present in USER CONTEXT.
 - Tone & Boundaries: Be warm, plain-language and non-judgmental. Never diagnose, and never tell the user they are "addicted".
-- Response Completeness & Length: Provide clear, fully finished answers. For general questions, write a thorough yet accessible explanation (around 200 to 350 words). If the user asks for a plan, routine or strategies, provide a detailed, actionable numbered list of 3 to 5 concrete steps (around 300 to 500 words), tie them directly to USER CONTEXT when available, and cite supporting evidence for each recommendation. Never cut off your response mid-thought or mid-sentence.
+- Response Completeness & Length: Provide clear, fully finished answers. For general questions, write a thorough yet accessible explanation (around 200 to 350 words). If the user asks for a plan, routine, coping mechanisms, or strategies, provide a detailed, actionable numbered list of 3 to 5 concrete steps (around 300 to 500 words), tie them directly to USER CONTEXT when available, and cite supporting evidence for each recommendation. Never cut off your response mid-thought or mid-sentence.
 - Citing Sources: Only cite [1], [2] when referencing research findings from the provided SOURCES. Do not attach source numbers to personal context summaries."""
 
 
@@ -60,22 +61,31 @@ store = Store()
 
 
 PLAN_REQUEST = re.compile(
-    r"\b(plan|routine|strateg(?:y|ies)|action plan|actionable|steps|tips|advice|cut down|reduce|help me|recommendations?)\b",
+    r"\b(plan|routine|strateg(?:y|ies)|action plan|actionable|steps|tips|advice|cut down|reduce|help me|recommendations?|coping|coping strategies|escape|stress|stress relief|alternatives?|habit|detox)\b",
     re.IGNORECASE
 )
-PLAN_HINT = " evidence-based practical strategies, behavioral interventions, and self-regulation techniques to reduce social media and screen time"
+PLAN_HINT = " evidence-based practical strategies, behavioral interventions, digital detox, healthier coping mechanisms, stress management, and self-regulation techniques to reduce social media and screen time"
+
+
+def clean_query_text(text: str) -> str:
+    """Fix common repeated-letter typos and normalize search terms."""
+    # e.g., 'strressed' -> 'stressed', 'scrrreen' -> 'screen'
+    t = re.sub(r"\bstr+es+ed\b", "stressed", text, flags=re.IGNORECASE)
+    t = re.sub(r"\bscr+e+n\b", "screen", t, flags=re.IGNORECASE)
+    t = re.sub(r"\bsoc+i+al\b", "social", t, flags=re.IGNORECASE)
+    return t
 
 
 def retrieval_query(message: str, history: list[dict]) -> str:
     """Short follow-ups like 'why?' retrieve badly alone, so borrow the previous user question.
-    Plan requests ('draft a plan tailored to my usage') are mostly personal wording that matches
-    nothing in the papers, so add topic words to pull in the strategy passages."""
-    query = message
-    if len(message.split()) < 8:
+    Plan and coping requests ('what are healthier coping strategies') benefit from topic words
+    that pull in the behavioral intervention and detox literature."""
+    query = clean_query_text(message)
+    if len(query.split()) < 8:
         prev = [h["content"] for h in history if h["role"] == "user"]
         if prev:
-            query = f"{prev[-1]} {message}"
-    if PLAN_REQUEST.search(message):
+            query = f"{prev[-1]} {query}"
+    if PLAN_REQUEST.search(query):
         query += PLAN_HINT
     return query
 
