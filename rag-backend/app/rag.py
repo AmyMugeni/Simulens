@@ -20,7 +20,7 @@ Rules:
 - User Data & Personal Questions: If the user asks what you know about them or asks about their data/score/schedule, summarize what is provided in USER CONTEXT in a clear, friendly way.
 - No Invented Facts: Never invent personal details not present in USER CONTEXT.
 - Tone & Boundaries: Be warm, plain-language and non-judgmental. Never diagnose, and never tell the user they are "addicted".
-- Response Length: Keep answers concise and under 180 words.
+- Response Completeness & Length: Provide clear, fully finished answers. For general questions, write a thorough yet accessible explanation (around 200 to 350 words). If the user asks for a plan, routine or strategies, provide a detailed, actionable numbered list of 3 to 5 concrete steps (around 300 to 500 words), tie them directly to USER CONTEXT when available, and cite supporting evidence for each recommendation. Never cut off your response mid-thought or mid-sentence.
 - Citing Sources: Only cite [1], [2] when referencing research findings from the provided SOURCES. Do not attach source numbers to personal context summaries."""
 
 
@@ -59,13 +59,25 @@ class Store:
 store = Store()
 
 
+PLAN_REQUEST = re.compile(
+    r"\b(plan|routine|strateg(?:y|ies)|action plan|actionable|steps|tips|advice|cut down|reduce|help me|recommendations?)\b",
+    re.IGNORECASE
+)
+PLAN_HINT = " evidence-based practical strategies, behavioral interventions, and self-regulation techniques to reduce social media and screen time"
+
+
 def retrieval_query(message: str, history: list[dict]) -> str:
-    """Short follow-ups like 'why?' retrieve badly alone, so borrow the previous user question."""
+    """Short follow-ups like 'why?' retrieve badly alone, so borrow the previous user question.
+    Plan requests ('draft a plan tailored to my usage') are mostly personal wording that matches
+    nothing in the papers, so add topic words to pull in the strategy passages."""
+    query = message
     if len(message.split()) < 8:
         prev = [h["content"] for h in history if h["role"] == "user"]
         if prev:
-            return f"{prev[-1]} {message}"
-    return message
+            query = f"{prev[-1]} {message}"
+    if PLAN_REQUEST.search(message):
+        query += PLAN_HINT
+    return query
 
 
 def retrieve(message: str, history: list[dict]):

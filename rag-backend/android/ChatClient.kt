@@ -20,7 +20,9 @@ data class Turn(val role: String, val content: String) // role: "user" or "assis
 class ChatClient(
     // Free Render instances sleep when idle; the first request can take up to a minute.
     private val http: OkHttpClient = OkHttpClient.Builder()
-        .callTimeout(75, TimeUnit.SECONDS)
+        .callTimeout(100, TimeUnit.SECONDS)
+        .connectTimeout(100, TimeUnit.SECONDS)
+        .readTimeout(100, TimeUnit.SECONDS)
         .build()
 ) {
     suspend fun ask(message: String, history: List<Turn>, context: String): Reply =
