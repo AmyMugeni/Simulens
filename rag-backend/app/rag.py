@@ -96,10 +96,34 @@ def retrieve(message: str, history: list[dict]):
     return [(c, s) for c, s in hits if s >= config.MIN_SCORE]
 
 
+def group_hits_by_paper(hits):
+    """Group multiple retrieved chunks from the same paper into a single source entry."""
+    papers = []
+    seen = {}
+    for chunk, score in hits:
+        key = chunk.get("url") or chunk.get("title")
+        if key in seen:
+            seen[key]["texts"].append(chunk["text"])
+            seen[key]["scores"].append(score)
+        else:
+            entry = {
+                "title": chunk["title"],
+                "url": chunk["url"],
+                "texts": [chunk["text"]],
+                "scores": [score],
+            }
+            seen[key] = entry
+            papers.append(entry)
+    return papers
+
+
 def build_messages(message: str, history: list[dict], context: str, hits) -> list[dict]:
-    sources = "\n\n".join(
-        f"[{n}] {c['title']} ({c['url']})\n{c['text']}" for n, (c, _) in enumerate(hits, 1)
-    )
+    papers = group_hits_by_paper(hits)
+    source_blocks = []
+    for n, p in enumerate(papers, 1):
+        combined_text = "\n\n".join(p["texts"])
+        source_blocks.append(f"[{n}] {p['title']} ({p['url']})\n{combined_text}")
+    sources = "\n\n".join(source_blocks)
     user_block = (
         f"USER CONTEXT:\n{context or 'none provided'}\n\n"
         f"SOURCES:\n{sources}\n\n"
@@ -136,8 +160,9 @@ async def call_llm(messages: list[dict]) -> str:
 def cited_sources(answer: str, hits) -> list[dict]:
     """Return only the sources the answer explicitly cites inline (e.g. [1], [2])."""
     nums = {int(n) for n in re.findall(r"\[(\d+)\]", answer)}
+    papers = group_hits_by_paper(hits)
     out = []
-    for n, (c, _) in enumerate(hits, 1):
+    for n, p in enumerate(papers, 1):
         if n in nums:
-            out.append({"n": n, "title": c["title"], "url": c["url"]})
+            out.append({"n": n, "title": p["title"], "url": p["url"]})
     return out

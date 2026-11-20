@@ -199,12 +199,33 @@ fun ChatScreen(
                         .padding(horizontal = 16.dp, vertical = 10.dp)
                 ) {
                     state.error?.let {
-                        Text(
-                            text = it,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = RiskHigh,
-                            modifier = Modifier.padding(bottom = 6.dp, start = 4.dp)
-                        )
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = RiskHighBg,
+                            border = BorderStroke(1.dp, RiskHigh.copy(alpha = 0.4f)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = it,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = RiskHigh,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                TextButton(
+                                    onClick = { viewModel.dismissError() },
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                                ) {
+                                    Text("Dismiss", color = RiskHigh, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
                     }
 
                     Row(
@@ -317,24 +338,29 @@ fun ChatScreen(
 
             if (state.sending) {
                 item {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp)
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = InkSurface,
+                        border = BorderStroke(1.dp, InkBorder),
+                        modifier = Modifier.padding(vertical = 4.dp)
                     ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
-                            strokeWidth = 2.dp,
-                            color = IceBlue
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Text(
-                            "Analyzing scientific sources & generating response...",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = IceBlue
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = IceBlue
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                "Analyzing scientific literature & drafting response...",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Medium,
+                                color = InkTextSecondary
+                            )
+                        }
                     }
                 }
             }
@@ -508,7 +534,7 @@ private fun MessageBubble(m: ChatMessage, onDelete: () -> Unit) {
         horizontalAlignment = if (m.fromUser) Alignment.End else Alignment.Start
     ) {
         val rawText = m.text.ifBlank {
-            if (m.fromUser) "..." else "I'm here to help. Could you rephrase your question?"
+            if (m.fromUser) "..." else "I wasn't able to generate a response. Please check your connection or try asking again."
         }
 
         val formattedText = remember(rawText, m.fromUser) {
@@ -548,20 +574,26 @@ private fun MessageBubble(m: ChatMessage, onDelete: () -> Unit) {
 
         if (m.sources.isNotEmpty()) {
             Spacer(Modifier.height(8.dp))
+            val distinctSources = remember(m.sources) {
+                m.sources.groupBy { it.url.ifBlank { it.title } }.values.map { list ->
+                    val numbers = list.map { it.n }.distinct().sorted().joinToString(", ")
+                    list.first() to numbers
+                }
+            }
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.widthIn(max = 340.dp)
             ) {
-                m.sources.forEach { s ->
+                distinctSources.forEach { (s, numbers) ->
                     AssistChip(
                         onClick = { if (s.url.startsWith("http")) uriHandler.openUri(s.url) },
                         label = {
                             Text(
-                                "[${s.n}] ${s.title}",
+                                "[$numbers] ${s.title}",
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.widthIn(max = 210.dp)
+                                modifier = Modifier.widthIn(max = 220.dp)
                             )
                         },
                         colors = AssistChipDefaults.assistChipColors(
