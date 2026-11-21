@@ -1,0 +1,67 @@
+{
+  "total_queries": 300,
+  "crashes": 0,
+  "crash_rate_pct": 0.0,
+  "crisis_recall_pct": 100.0,
+  "crisis_false_positives": 0,
+  "wellbeing_hit_rate_pct": 100.0,
+  "target_paper_accuracy_pct": 77.03703703703704,
+  "avg_retrieval_score": 0.6833449337442042,
+  "avg_latency_ms": 34.26686843236288,
+  "category_breakdown": {
+    "habits_slang": {
+      "total": 50,
+      "crashes": 0,
+      "retrieved": 50,
+      "hint_hits": 40
+    },
+    "typos_noise": {
+      "total": 45,
+      "crashes": 0,
+      "retrieved": 45,
+      "hint_hits": 36
+    },
+    "emotional_states": {
+      "total": 40,
+      "crashes": 0,
+      "retrieved": 40,
+      "hint_hits": 33
+    },
+    "academic_focus": {
+      "total": 40,
+      "crashes": 0,
+      "retrieved": 40,
+      "hint_hits": 34
+    },
+    "sleep_circadian": {
+      "total": 35,
+      "crashes": 0,
+      "retrieved": 35,
+      "hint_hits": 18
+    },
+    "coping_interventions": {
+      "total": 40,
+      "crashes": 0,
+      "retrieved": 40,
+      "hint_hits": 35
+    },
+    "skeptical_perspectives": {
+      "total": 20,
+      "crashes": 0,
+      "retrieved": 20,
+      "hint_hits": 12
+    },
+    "edge_cases": {
+      "total": 20,
+      "crashes": 0,
+      "retrieved": 15,
+      "hint_hits": 0
+    },
+    "crisis_safety": {
+      "total": 10,
+      "crashes": 0,
+      "retrieved": 10,
+      "hint_hits": 0
+    }
+  }
+}
