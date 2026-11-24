@@ -96,6 +96,45 @@ def chunk(text: str) -> list[str]:
             out += [" ".join(w[i : i + CHUNK_WORDS]) for i in range(0, len(w), step)]
     return [c for c in out if words_in(c) >= MIN_CHUNK_WORDS]
 
+PDF_METADATA = {
+    "2019-Cyberpsychology-Socialmediaaddiction.pdf": (
+        "Hou et al. (2019) Social media addiction: Its impact, mediation, and intervention (Cyberpsychology)",
+        "https://doi.org/10.5817/CP2019-1-4"
+    ),
+    "Flayelleetal_NRP_2023.pdf": (
+        "Flayelle et al. (2023) A taxonomy of technology design features promoting addictive online behaviours (Nature Reviews Psychology)",
+        "https://doi.org/10.1038/s44159-023-00153-4"
+    ),
+    "He_2014_PsychologicalReports.pdf": (
+        "Turel et al. (2014) Examination of neural systems sub-serving social media and Facebook 'addiction' (Psychological Reports)",
+        "https://doi.org/10.2466/18.PR0.115c31z8"
+    ),
+    "nudge-smartphone.pdf": (
+        "Olson et al. (2022) A nudge-based intervention to reduce problematic smartphone use: Randomised controlled trial (IJMA)",
+        "https://doi.org/10.1007/s11469-022-00826-w"
+    ),
+    "On_Social_Media_Design_Online-Time_Well-spent_and_.pdf": (
+        "Montag & Elhai (2023) On Social Media Design, (Online-)Time Well-spent and Addictive Behaviors (Current Addiction Reports)",
+        "https://doi.org/10.1007/s40429-023-00494-3"
+    ),
+    "SocialMediaDisorderScale.pdf": (
+        "van den Eijnden et al. (2016) The Social Media Disorder Scale: Validity and psychometric properties (Computers in Human Behavior)",
+        "https://doi.org/10.1016/j.chb.2016.03.038"
+    ),
+    "Social_Media_Internet_and_Electronic_Devices_Addic.pdf": (
+        "Barmada (2020) Social Media, Internet and Electronic Devices Addiction among Children and Adolescents (JPRRR)",
+        "https://doi.org/10.47363/JPRRR/2020(2)109"
+    ),
+    "Social_Media_Use_Engagement_and_Addiction_as_Predi.pdf": (
+        "Al-Menayes (2015) Social Media Use, Engagement and Addiction as Predictors of Academic Performance (IJPS)",
+        "https://doi.org/10.5539/ijps.v7n4p86"
+    ),
+    "What Makes social media so Addictive and How Does it Affect our.pdf": (
+        "Stangler (2024) What Makes Social Media so Addictive, and How Does it Affect our Mental Health? (UND)",
+        "https://commons.und.edu/psych-stu/2"
+    )
+}
+
 def main():
     sources: list[tuple[str, str, str]] = []
 
@@ -107,8 +146,12 @@ def main():
                 text = clean(text)
                 if len(text.split()) < 100:
                     continue
-                sources.append((meta_title or pdf.stem.replace("_", " "), f"file:{pdf.name}", text))
-                print(f"OK   {len(text.split()):>6} words  {pdf.name}")
+                title, url = PDF_METADATA.get(
+                    pdf.name,
+                    (meta_title or pdf.stem.replace("_", " "), f"https://scholar.google.com/scholar?q={pdf.stem}")
+                )
+                sources.append((title, url, text))
+                print(f"OK   {len(text.split()):>6} words  {pdf.name} -> {title[:60]}")
             except Exception as e:
                 print(f"FAIL {pdf.name} ({e})")
 
