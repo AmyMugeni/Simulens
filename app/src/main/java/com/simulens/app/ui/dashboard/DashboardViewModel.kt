@@ -183,6 +183,10 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     val riskPrediction: StateFlow<com.simulens.app.ml.RiskPrediction?> = behavioralSessionDao.getAllSessions()
         .map { sessions ->
             Log.d("SimulensML", "riskPrediction Flow triggered: total DB sessions=${sessions.size}")
+            if (sessions.isEmpty()) {
+                Log.d("SimulensML", "No tracked sessions found. Risk prediction returning null (learning pattern).")
+                return@map null
+            }
             val zone = ZoneId.systemDefault()
             val today = LocalDate.now(zone)
             val profile = userProfileRepository.userProfileFlow.first()
@@ -194,7 +198,11 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 sleep = profile.sleepTime,
                 classBlocksFor = { date -> com.simulens.app.data.tracker.ClassScheduleMapper.blocksFor(date, timetable) },
                 zone = zone
-            ) ?: com.simulens.app.ml.BehavioralFeatureExtractor.defaultFeatures()
+            )
+            if (features == null) {
+                Log.d("SimulensML", "Insufficient window data to extract features. Returning null (learning pattern).")
+                return@map null
+            }
             Log.d("SimulensML", "Extracted ${features.size} features. Running ONNX prediction...")
             val result = predictor.predict(features)
             Log.d("SimulensML", "ONNX Predict Result: $result")
@@ -203,7 +211,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = predictor.predict(com.simulens.app.ml.BehavioralFeatureExtractor.defaultFeatures())
+            initialValue = null
         )
 
     init {
