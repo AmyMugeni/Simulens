@@ -177,8 +177,8 @@ class RandomForestPredictor(context: Context, assetName: String = MODEL_ASSET) :
         private const val TAG = "SimulensML"
         const val MODEL_ASSET = "simulens_rf_champion.onnx"
 
-        /** Must equal the cut-off used when the model was evaluated in the notebook. */
-        const val THRESHOLD = 0.50
+        /** Cut-off boundary aligned with 3-band BSMAS classification (66% cutoff). */
+        const val THRESHOLD = 0.66
 
         /** Order must equal the training columns exactly. Print X.columns in the notebook to confirm. */
         val FEATURE_NAMES = listOf(

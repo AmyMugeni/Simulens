@@ -171,7 +171,7 @@ fun PermissionsScreen(
         PermissionCard(
             step = 4,
             title = "Unrestricted Battery",
-            description = "Prevents Oppo/Samsung battery savers from pausing live usage tracking in the background.",
+            description = "Prevents Android battery savers from pausing live usage tracking in the background.",
             isGranted = isBatteryUnrestricted,
             onRequest = {
                 PermissionUtils.requestIgnoreBatteryOptimizations(context)

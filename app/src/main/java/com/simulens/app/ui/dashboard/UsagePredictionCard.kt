@@ -208,7 +208,7 @@ fun MLClassifierCard(
                 HorizontalDivider(color = colors.outlineVariant)
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "Model score: ${(prob * 100).toInt()}%. Scores of 50% or more are shown as elevated.\n\n" +
+                    "Model score: ${(prob * 100).toInt()}%. Scores of 66% or more are shown as elevated.\n\n" +
                             "• Window: Evaluates your 28-day rolling average.\n" +
                             "• Adaptation: Meaningful changes in daily usage typically require 5–7 days of sustained lower use to shift the 28-day moving average.",
                     style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant
@@ -218,7 +218,7 @@ fun MLClassifierCard(
     }
 }
 
-/** Two-zone track, a tick at the 50% cutoff, and a marker at the real position (no clamping). */
+/** Two-zone track, a tick at the 66% cutoff, and a marker at the real position (no clamping). */
 @Composable
 private fun RiskMeter(prob: Float, marker: Color) {
     val colors = MaterialTheme.colorScheme
@@ -232,17 +232,18 @@ private fun RiskMeter(prob: Float, marker: Color) {
         val r = 9.dp.toPx()
         val top = (size.height - trackH) / 2f
         val cy = size.height / 2f
+        val cutoffX = size.width * 0.66f
 
         val track = Path().apply {
             addRoundRect(RoundRect(0f, top, size.width, top + trackH, CornerRadius(trackH / 2f)))
         }
         clipPath(track) {
-            drawRect(low, Offset(0f, top), Size(size.width / 2f, trackH))
-            drawRect(high, Offset(size.width / 2f, top), Size(size.width / 2f, trackH))
+            drawRect(low, Offset(0f, top), Size(cutoffX, trackH))
+            drawRect(high, Offset(cutoffX, top), Size(size.width - cutoffX, trackH))
         }
 
         drawLine(
-            tick, Offset(size.width / 2f, top - 3.dp.toPx()), Offset(size.width / 2f, top + trackH + 3.dp.toPx()),
+            tick, Offset(cutoffX, top - 3.dp.toPx()), Offset(cutoffX, top + trackH + 3.dp.toPx()),
             strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round
         )
 
