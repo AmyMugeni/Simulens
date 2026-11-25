@@ -28,7 +28,7 @@ CRISIS_PATTERNS = [
 
     # Kiswahili & Sheng Kenyan conversational expressions
     r"\b(kujitoa maisha|kujiua|nataka kujiua|kujinyonga|kujikata)\b",
-    r"\b(nataka kufa|natamani kufa|heri nife|afadhali nife|heri nikufe|afadhali nikufe)\b",
+    r"\b(nataka kufa|natamani kufa|naskia kufa|naskia kukufa|skia kufa|skia kukufa|kukufa|heri nife|afadhali nife|heri nikufe|afadhali nikufe)\b",
     r"\b(sina sababu ya kuishi|hata sioni haja ya kuishi|maisha hayana maana)\b",
     r"\b(nataka kujiumiza|kujiumiza|kukata roho)\b",
     r"\b(sitaki kuishi tena|nimechoka na maisha|nimechoka kuishi|maisha imenilemea|maisha yanilemee)\b",
