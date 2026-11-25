@@ -108,14 +108,13 @@ fun MLClassifierCard(
     ) {
         CardHeader(
             Icons.Rounded.Insights, tone,
-            "Behavioural risk check", "Looks at your last 28 days",
-            trailing = {
-                PillBadge(
-                    text = if (elevated) "WORTH A LOOK" else "TYPICAL",
-                    containerColor = tone.copy(alpha = 0.16f),
-                    contentColor = tone
-                )
-            }
+            "Behavioural risk check", "Looks at your last 28 days"
+        )
+        Spacer(Modifier.height(10.dp))
+        PillBadge(
+            text = if (elevated) "WORTH A LOOK" else "TYPICAL",
+            containerColor = tone.copy(alpha = 0.16f),
+            contentColor = tone
         )
 
         Spacer(Modifier.height(18.dp))
