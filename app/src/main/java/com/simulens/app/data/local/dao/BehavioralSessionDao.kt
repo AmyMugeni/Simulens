@@ -57,6 +57,20 @@ interface BehavioralSessionDao {
     fun observeSessionsSince(since: Long): Flow<List<BehavioralSession>>
     @Query(
         """
+    SELECT *
+    FROM behavioral_sessions
+    WHERE timestamp >= :startOfDayTimestamp
+      AND timestamp < :endOfDayTimestamp
+    ORDER BY timestamp ASC
+    """
+    )
+    suspend fun getSessionsBetween(
+        startOfDayTimestamp: Long,
+        endOfDayTimestamp: Long
+    ): List<BehavioralSession>
+
+    @Query(
+        """
     SELECT COUNT(*)
     FROM behavioral_sessions
     WHERE timestamp >= :startOfDayTimestamp

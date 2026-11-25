@@ -33,6 +33,7 @@ import com.simulens.app.data.repositories.UserProfileRepository
 import com.simulens.app.data.tracker.UsageAccess
 import com.simulens.app.domain.model.UserProfile
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -180,7 +181,9 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     val anchor: StateFlow<BaselineAnchorEntity?> = database.baselineAnchorDao().observeActive()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
+    @OptIn(FlowPreview::class)
     val riskPrediction: StateFlow<com.simulens.app.ml.RiskPrediction?> = behavioralSessionDao.getAllSessions()
+        .debounce(250L)
         .map { sessions ->
             Log.d("SimulensML", "riskPrediction Flow triggered: total DB sessions=${sessions.size}")
             if (sessions.isEmpty()) {
@@ -208,6 +211,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             Log.d("SimulensML", "ONNX Predict Result: $result")
             result
         }
+        .flowOn(Dispatchers.Default)
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -216,18 +220,21 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
+            // Pre-warm ONNX session off the main thread
+            predictor
             AnchorManager.ensureFrozen(getApplication(), database, monitoredAppsRepository.monitoredApps.first())
-            syncUsageData()
+            val initialLookback = if (behavioralSessionDao.getTotalSessionCount() == 0) 30 else 2
+            syncUsageData(lookbackDays = initialLookback)
         }
     }
 
-    fun syncUsageData() {
+    fun syncUsageData(lookbackDays: Int = 2) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 com.simulens.app.data.tracker.HistoricalUsageSyncer.sync(
                     context = getApplication(),
                     database = database,
-                    lookbackDays = 30
+                    lookbackDays = lookbackDays
                 )
             } catch (e: Exception) {
                 Log.e("DashboardViewModel", "Error syncing usage data", e)
@@ -424,9 +431,10 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         val timeRange: TimeRange
     )
 
+    @OptIn(FlowPreview::class)
     val state: StateFlow<DashboardState> = combine(
         combine(
-            behavioralSessionDao.getAllSessions(),
+            behavioralSessionDao.getAllSessions().debounce(150L),
             interventionLogDao.getAllLogs(),
             monitoredApps,
             todayTimetableEntries,

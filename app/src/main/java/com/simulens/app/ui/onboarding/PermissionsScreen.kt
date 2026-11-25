@@ -48,6 +48,7 @@ fun PermissionsScreen(
     var hasUsagePermission by remember { mutableStateOf(PermissionUtils.hasUsageStatsPermission(context)) }
     var hasOverlayPermission by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
     var hasNotificationPermission by remember { mutableStateOf(PermissionUtils.hasNotificationPermission(context)) }
+    var isBatteryUnrestricted by remember { mutableStateOf(PermissionUtils.isIgnoringBatteryOptimizations(context)) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -55,6 +56,7 @@ fun PermissionsScreen(
                 hasUsagePermission = PermissionUtils.hasUsageStatsPermission(context)
                 hasOverlayPermission = Settings.canDrawOverlays(context)
                 hasNotificationPermission = PermissionUtils.hasNotificationPermission(context)
+                isBatteryUnrestricted = PermissionUtils.isIgnoringBatteryOptimizations(context)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -160,6 +162,20 @@ fun PermissionsScreen(
                     PermissionUtils.openNotificationSettings(context)
                     hasNotificationPermission = PermissionUtils.hasNotificationPermission(context)
                 }
+            }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Permission Card 4: Unrestricted Battery (Recommended for Oppo / Samsung)
+        PermissionCard(
+            step = 4,
+            title = "Unrestricted Battery",
+            description = "Prevents Oppo/Samsung battery savers from pausing live usage tracking in the background.",
+            isGranted = isBatteryUnrestricted,
+            onRequest = {
+                PermissionUtils.requestIgnoreBatteryOptimizations(context)
+                isBatteryUnrestricted = PermissionUtils.isIgnoringBatteryOptimizations(context)
             }
         )
 

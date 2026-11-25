@@ -65,11 +65,17 @@ fun DashboardScreen(
     val anchor by viewModel.anchor.collectAsState()
     val riskPrediction by viewModel.riskPrediction.collectAsState()
     val chatLaunchVm: com.simulens.app.rag.ChatLaunchViewModel = viewModel()
+    val context = LocalContext.current
+    var isBatteryUnrestricted by remember {
+        mutableStateOf(com.simulens.app.data.tracker.PermissionUtils.isIgnoringBatteryOptimizations(context))
+    }
+    var batteryBannerDismissed by rememberSaveable { mutableStateOf(false) }
 
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
+                isBatteryUnrestricted = com.simulens.app.data.tracker.PermissionUtils.isIgnoringBatteryOptimizations(context)
                 viewModel.syncUsageData()
             }
         }
@@ -248,6 +254,63 @@ fun DashboardScreen(
                                 onClick = { selectedTab = 1 }
                             )
                             Spacer(modifier = Modifier.height(16.dp))
+                        }
+
+                        // 3b. Battery Optimization Warning (prevents Oppo/Samsung background freezing)
+                        if (!isBatteryUnrestricted && !batteryBannerDismissed) {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(16.dp),
+                                color = InkSurface,
+                                border = BorderStroke(1.dp, InkAmber.copy(alpha = 0.4f))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(14.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.BatteryAlert,
+                                        contentDescription = null,
+                                        tint = InkAmber,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                    Spacer(Modifier.width(10.dp))
+                                    Column(modifier = Modifier.weight(1f, fill = false)) {
+                                        Text(
+                                            text = "Background tracking is restricted",
+                                            style = MaterialTheme.typography.labelLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            color = InkTextPrimary
+                                        )
+                                        Text(
+                                            text = "Allow unrestricted battery so live usage stays synced with Digital Wellbeing.",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = InkTextSecondary
+                                        )
+                                    }
+                                    Spacer(Modifier.width(8.dp))
+                                    TextButton(
+                                        onClick = {
+                                            com.simulens.app.data.tracker.PermissionUtils.requestIgnoreBatteryOptimizations(context)
+                                        },
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Text("Allow", color = InkAmber, fontWeight = FontWeight.Bold)
+                                    }
+                                    IconButton(
+                                        onClick = { batteryBannerDismissed = true },
+                                        modifier = Modifier.size(28.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = "Dismiss",
+                                            tint = InkTextMuted,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(14.dp))
                         }
 
                         // 4. View Mode Switcher: [ Overview | Deep Dive ]

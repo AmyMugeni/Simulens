@@ -6,6 +6,7 @@ import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.os.Build
 import android.util.Log
+import androidx.room.withTransaction
 import com.simulens.app.data.local.SimulensDatabase
 import com.simulens.app.data.local.entity.BehavioralSession
 import com.simulens.app.data.local.entity.DailyTrackingCoverageEntity
@@ -64,100 +65,131 @@ object HistoricalUsageSyncer {
             val windowStart = today.minusDays((days - 1).toLong())
                 .atStartOfDay(zone).toInstant().toEpochMilli()
 
+            // Query 2 hours before windowStart so sessions crossing midnight still have their start event.
+            val queryStart = windowStart - 2 * 60 * 60 * 1000L
+
             // One query for the whole window, then split by end date (the same rule the
             // live tracker uses for BehavioralSession.timestamp).
-            val sessions = reconstructSessions(usm, monitoredApps, windowStart, nowMs)
+            val sessions = reconstructSessions(usm, monitoredApps, queryStart, nowMs)
+                .filter { it.endMs >= windowStart }
                 .sortedBy { it.endMs }
             val sessionsByEndDate = sessions.groupBy {
                 Instant.ofEpochMilli(it.endMs).atZone(zone).toLocalDate()
             }
 
-            var previousEndMs: Long? = null
+            var insertedCount = 0
 
-            for (dayOffset in (days - 1) downTo 0) {
-                val date = today.minusDays(dayOffset.toLong())
-                val startOfDay = date.atStartOfDay(zone).toInstant().toEpochMilli()
-                val endOfDay = date.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli() - 1L
-                val coverageEnd = if (dayOffset == 0) nowMs else endOfDay
+            database.withTransaction {
+                var previousEndMs: Long? = null
 
-                // Coverage row only for days the event log actually covers.
-                if (database.dailyTrackingCoverageDao().getByDate(date.toString()) == null) {
-                    database.dailyTrackingCoverageDao().upsert(
-                        DailyTrackingCoverageEntity(
-                            date = date.toString(),
-                            firstObservedAtEpochMs = startOfDay,
-                            lastSuccessfulPollAtEpochMs = coverageEnd,
-                            coveredDurationMs = coverageEnd - startOfDay,
-                            successfulPollCount = 0,
-                            failedPollCount = 0,
-                            assessed = true,
-                            trackingReliable = true
+                for (dayOffset in (days - 1) downTo 0) {
+                    val date = today.minusDays(dayOffset.toLong())
+                    val startOfDay = date.atStartOfDay(zone).toInstant().toEpochMilli()
+                    val endOfDay = date.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli() - 1L
+                    val coverageEnd = if (dayOffset == 0) nowMs else endOfDay
+
+                    val existingCoverage = database.dailyTrackingCoverageDao().getByDate(date.toString())
+                    if (existingCoverage == null || dayOffset == 0) {
+                        database.dailyTrackingCoverageDao().upsert(
+                            DailyTrackingCoverageEntity(
+                                date = date.toString(),
+                                firstObservedAtEpochMs = existingCoverage?.firstObservedAtEpochMs ?: startOfDay,
+                                lastSuccessfulPollAtEpochMs = coverageEnd,
+                                coveredDurationMs = coverageEnd - (existingCoverage?.firstObservedAtEpochMs ?: startOfDay),
+                                successfulPollCount = existingCoverage?.successfulPollCount ?: 0,
+                                failedPollCount = existingCoverage?.failedPollCount ?: 0,
+                                assessed = true,
+                                trackingReliable = true
+                            )
                         )
-                    )
-                }
+                    }
 
-                // Never duplicate a day the live tracker (or an earlier sync) already wrote.
-                val existing = database.behavioralSessionDao()
-                    .getSessionCountBetween(startOfDay, endOfDay + 1L)
-                if (existing > 0) {
-                    previousEndMs = null
-                    continue
-                }
+                    // Skip older historical days that are already populated; always gap-check today & yesterday.
+                    if (dayOffset > 1) {
+                        val existingCount = database.behavioralSessionDao()
+                            .getSessionCountBetween(startOfDay, endOfDay + 1L)
+                        if (existingCount > 0) {
+                            previousEndMs = null
+                            continue
+                        }
+                    }
 
-                val classBlocks = ClassScheduleMapper.blocksFor(date, timetableEntries)
+                    val existingSessions = database.behavioralSessionDao()
+                        .getSessionsBetween(startOfDay, endOfDay + 1L)
+                        .toMutableList()
 
-                for (s in sessionsByEndDate[date].orEmpty()) {
-                    val startLdt = LocalDateTime.ofInstant(Instant.ofEpochMilli(s.startMs), zone)
-                    val startTime = startLdt.toLocalTime()
+                    val dayCandidates = sessionsByEndDate[date].orEmpty()
+                    if (dayCandidates.isEmpty()) {
+                        previousEndMs = existingSessions.lastOrNull()?.timestamp ?: previousEndMs
+                        continue
+                    }
 
-                    val inClass = interventionEngine.isInClass(startTime, classBlocks)
-                    val minutesSinceWake =
-                        (((ChronoUnit.MINUTES.between(userProfile.wakeUpTime, startTime) % 1440 + 1440) % 1440)).toInt()
-                    val minutesUntilSleep =
-                        (((ChronoUnit.MINUTES.between(startTime, userProfile.sleepTime) % 1440 + 1440) % 1440)).toInt()
+                    val classBlocks = ClassScheduleMapper.blocksFor(date, timetableEntries)
 
-                    val wakeWindowEnd =
-                        userProfile.wakeUpTime.plusMinutes(userProfile.morningBufferMinutes)
-                    val isMorning = isTimeBetween(startTime, userProfile.wakeUpTime, wakeWindowEnd)
-                    val windDownStart =
-                        userProfile.sleepTime.minusMinutes(userProfile.bedtimeBufferMinutes)
-                    val isBedtime = isTimeBetween(startTime, windDownStart, userProfile.wakeUpTime)
+                    for (s in dayCandidates) {
+                        if (isAlreadyRecorded(s, existingSessions)) {
+                            previousEndMs = maxOf(previousEndMs ?: 0L, s.endMs)
+                            continue
+                        }
 
-                    // Real gap since the previous session ended (any monitored app).
-                    val gapMins = previousEndMs
-                        ?.let { ((s.startMs - it) / 60_000.0).coerceAtLeast(0.0) }
-                        ?: 60.0
+                        val startLdt = LocalDateTime.ofInstant(Instant.ofEpochMilli(s.startMs), zone)
+                        val startTime = startLdt.toLocalTime()
 
-                    val session = BehavioralSession(
-                        packageName = s.pkg,
-                        timestamp = s.endMs, // session END, same as the live tracker
-                        elapsedDuration = (s.endMs - s.startMs) / 60_000.0,
-                        previousSessionGap = gapMins,
-                        sessionsToday = 0,               // filled by insertSessionWithDailyTotals
-                        dailySocialMediaDuration = 0.0,  // filled by insertSessionWithDailyTotals
-                        timeOfDay = startLdt.hour,
-                        dayOfWeek = startLdt.dayOfWeek.value,
-                        scheduleConflict = if (inClass) 1 else 0,
-                        minutesSinceWake = minutesSinceWake,
-                        minutesUntilSleep = minutesUntilSleep,
-                        morningSocialMedia = if (isMorning) 1 else 0,
-                        bedtimeSocialMedia = if (isBedtime) 1 else 0,
-                        baselineDurationRatio = 1.0,
-                        baselineFrequencyRatio = 1.0,
-                        label = 0 // left as-is for now; revisit before using the ML export
-                    )
+                        val inClass = interventionEngine.isInClass(startTime, classBlocks)
+                        val minutesSinceWake =
+                            (((ChronoUnit.MINUTES.between(userProfile.wakeUpTime, startTime) % 1440 + 1440) % 1440)).toInt()
+                        val minutesUntilSleep =
+                            (((ChronoUnit.MINUTES.between(startTime, userProfile.sleepTime) % 1440 + 1440) % 1440)).toInt()
 
-                    database.behavioralSessionDao().insertSessionWithDailyTotals(
-                        session = session,
-                        startOfDayTimestamp = startOfDay,
-                        endOfDayTimestamp = endOfDay + 1L, // DAO uses an exclusive upper bound
-                        baselineDailyMinutes = null,
-                        baselineSessionsPerDay = null
-                    )
-                    previousEndMs = s.endMs
+                        val wakeWindowEnd =
+                            userProfile.wakeUpTime.plusMinutes(userProfile.morningBufferMinutes)
+                        val isMorning = isTimeBetween(startTime, userProfile.wakeUpTime, wakeWindowEnd)
+                        val windDownStart =
+                            userProfile.sleepTime.minusMinutes(userProfile.bedtimeBufferMinutes)
+                        val isBedtime = isTimeBetween(startTime, windDownStart, userProfile.wakeUpTime)
+
+                        // Real gap since the previous session ended (any monitored app).
+                        val priorEnd = existingSessions
+                            .filter { it.timestamp <= s.startMs }
+                            .maxOfOrNull { it.timestamp }
+                            ?: previousEndMs
+                        val gapMins = priorEnd
+                            ?.let { ((s.startMs - it) / 60_000.0).coerceAtLeast(0.0) }
+                            ?: 60.0
+
+                        val session = BehavioralSession(
+                            packageName = s.pkg,
+                            timestamp = s.endMs, // session END, same as the live tracker
+                            elapsedDuration = (s.endMs - s.startMs) / 60_000.0,
+                            previousSessionGap = gapMins,
+                            sessionsToday = 0,               // filled by insertSessionWithDailyTotals
+                            dailySocialMediaDuration = 0.0,  // filled by insertSessionWithDailyTotals
+                            timeOfDay = startLdt.hour,
+                            dayOfWeek = startLdt.dayOfWeek.value,
+                            scheduleConflict = if (inClass) 1 else 0,
+                            minutesSinceWake = minutesSinceWake,
+                            minutesUntilSleep = minutesUntilSleep,
+                            morningSocialMedia = if (isMorning) 1 else 0,
+                            bedtimeSocialMedia = if (isBedtime) 1 else 0,
+                            baselineDurationRatio = 1.0,
+                            baselineFrequencyRatio = 1.0,
+                            label = 0 // left as-is for now; revisit before using the ML export
+                        )
+
+                        database.behavioralSessionDao().insertSessionWithDailyTotals(
+                            session = session,
+                            startOfDayTimestamp = startOfDay,
+                            endOfDayTimestamp = endOfDay + 1L, // DAO uses an exclusive upper bound
+                            baselineDailyMinutes = null,
+                            baselineSessionsPerDay = null
+                        )
+                        existingSessions += session
+                        insertedCount++
+                        previousEndMs = s.endMs
+                    }
                 }
             }
-            Log.i(TAG, "Reconstructed ${sessions.size} sessions over the last $days days.")
+            Log.i(TAG, "Scanned ${sessions.size} sessions over $days days; inserted $insertedCount new sessions.")
         } catch (e: Exception) {
             Log.e(TAG, "Failed historical usage sync", e)
         }
@@ -232,6 +264,17 @@ object HistoricalUsageSyncer {
                 acc
             }
             .filter { it.endMs - it.startMs >= minSessionMs }
+
+    private fun isAlreadyRecorded(s: RawSession, existing: List<BehavioralSession>): Boolean {
+        return existing.any { e ->
+            if (e.packageName != s.pkg) return@any false
+            if (kotlin.math.abs(e.timestamp - s.endMs) <= 5_000L) return@any true
+            val eStart = e.timestamp - (e.elapsedDuration * 60_000.0).toLong()
+            val overlapStart = maxOf(s.startMs, eStart)
+            val overlapEnd = minOf(s.endMs, e.timestamp)
+            overlapEnd - overlapStart >= 2_000L
+        }
+    }
 
     private fun isTimeBetween(target: LocalTime, start: LocalTime, end: LocalTime): Boolean =
         if (start.isBefore(end)) !target.isBefore(start) && !target.isAfter(end)

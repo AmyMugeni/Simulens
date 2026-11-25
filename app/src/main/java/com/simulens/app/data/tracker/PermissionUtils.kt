@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.os.PowerManager
 import android.os.Process
 import android.provider.Settings
 import androidx.core.app.NotificationManagerCompat
@@ -75,5 +76,42 @@ object PermissionUtils {
             }
         }
         context.startActivity(intent)
+    }
+
+    /**
+     * Returns true if the system is NOT killing Simulens in the background via Doze/Battery Optimization.
+     */
+    fun isIgnoringBatteryOptimizations(context: Context): Boolean {
+        val pm = context.getSystemService(Context.POWER_SERVICE) as? PowerManager ?: return true
+        return pm.isIgnoringBatteryOptimizations(context.packageName)
+    }
+
+    /**
+     * Prompts the user to exempt Simulens from battery optimization, falling back to
+     * Battery Optimization settings or App Info on OEMs (e.g., Oppo/ColorOS) that restrict the dialog.
+     */
+    fun requestIgnoreBatteryOptimizations(context: Context) {
+        val directIntent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+            data = Uri.parse("package:${context.packageName}")
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        try {
+            context.startActivity(directIntent)
+        } catch (_: Exception) {
+            try {
+                context.startActivity(
+                    Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                )
+            } catch (_: Exception) {
+                context.startActivity(
+                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.parse("package:${context.packageName}")
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                )
+            }
+        }
     }
 }
