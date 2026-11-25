@@ -20,4 +20,4 @@ services:
       - key: TOP_K
         value: "4"
       - key: MIN_SCORE
-        value: "0.45"
+        value: "0.54"

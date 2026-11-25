@@ -16,7 +16,7 @@ LLM_MODEL = os.getenv("LLM_MODEL", "llama-3.3-70b-versatile")
 APP_TOKEN = os.getenv("APP_TOKEN", "")
 
 TOP_K = int(os.getenv("TOP_K", "4"))
-MIN_SCORE = float(os.getenv("MIN_SCORE", "0.45"))
+MIN_SCORE = float(os.getenv("MIN_SCORE", "0.54"))
 
 RATE_PER_MINUTE = int(os.getenv("RATE_PER_MINUTE", "12"))
 RATE_PER_DAY = int(os.getenv("RATE_PER_DAY", "150"))
