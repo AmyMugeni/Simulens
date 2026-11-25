@@ -209,8 +209,9 @@ fun MLClassifierCard(
                 HorizontalDivider(color = colors.outlineVariant)
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "Model score: ${(prob * 100).toInt()}%. Scores of 50% or more are shown as elevated. " +
-                            "This is an estimate, not a measurement, and it can be wrong.",
+                    "Model score: ${(prob * 100).toInt()}%. Scores of 50% or more are shown as elevated.\n\n" +
+                            "• Window: Evaluates your 28-day rolling average.\n" +
+                            "• Adaptation: Meaningful changes in daily usage typically require 5–7 days of sustained lower use to shift the 28-day moving average.",
                     style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant
                 )
             }

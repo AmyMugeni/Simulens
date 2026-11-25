@@ -11,7 +11,7 @@ import androidx.compose.ui.graphics.Color
 val InkBackground = Color(0xFF0B1220)        // Deep navy background (#0b1220)
 val InkTextPrimary = Color(0xFFE6EEFF)       // Soft ice ink text (#e6eeff)
 val IceBlue = Color(0xFF60A5FA)              // Primary sky blue (#60a5fa)
-val InkAmber = Color(0xFFFBBF24)             // Accent warm amber (#fbbf24)
+val InkAmber = Color(0xFFFFD600)             // Pure vibrant yellow (#ffd600)
 val InkTint = Color(0xFF16233B)              // Tint surface (#16233b)
 
 // Playful, lighter translucent blue card surface
@@ -22,8 +22,8 @@ val InkSurfaceHighest = Color(0xFF223A63)    // Surface highest elevation
 val InkBorder = Color(0x5960A5FA)            // Subtle glowing translucent blue border (35% opacity #60a5fa)
 
 // Accent Variations
-val InkAmberLight = Color(0xFFFDE047)
-val InkAmberDark = Color(0xFFD97706)
+val InkAmberLight = Color(0xFFFFEA00)
+val InkAmberDark = Color(0xFFE6C200)
 val InkOnAmber = Color(0xFF0B1220)
 
 val IceBlueLight = Color(0xFF93C5FD)

@@ -120,7 +120,7 @@ fun HowItWorksScreen(
                 badge = "100% PRIVATE & ON-DEVICE",
                 title = "Zero Data Extraction",
                 description = "Your usage timestamps, schedules, and app launch counts stay strictly on your phone. Nothing leaves this device without your explicit opt-in confirmation.",
-                accentColor = RiskLow
+                accentColor = InkAmber
             )
 
             Spacer(modifier = Modifier.height(28.dp))

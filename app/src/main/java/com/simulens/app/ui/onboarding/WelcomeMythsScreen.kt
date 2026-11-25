@@ -64,7 +64,7 @@ fun WelcomeMythsScreen(
                 )
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    text = "Welcome to Simulens • A Safe Space",
+                    text = "Welcome to Simulens",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = InkAmber
@@ -75,7 +75,7 @@ fun WelcomeMythsScreen(
 
             // Compassionate Headline
             Text(
-                text = "It's Not a Lack of Willpower.",
+                text = "Restore your digital health.",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = InkTextPrimary,
@@ -110,7 +110,7 @@ fun WelcomeMythsScreen(
                 icon = Icons.Default.Psychology,
                 myth = "Myth: \"I just lack discipline and self-control.\"",
                 factTitle = "Persuasive Tech & Variable Rewards",
-                factBody = "Apps use the same variable ratio reinforcement found in slot machines. Every pull-to-refresh removes natural stopping cues, prompting compulsive checking before conscious choice kicks in.",
+                factBody = "Apps are designed like casino slot machines to trick your brain into checking your phone on autopilot, without giving you a clear place to stop and reflect.",
                 accentColor = IceBlue
             )
 
@@ -121,7 +121,7 @@ fun WelcomeMythsScreen(
                 icon = Icons.Default.MenuBook,
                 myth = "Myth: \"A 10-second check during class won't hurt.\"",
                 factTitle = "Attention Residue & Lecture Retention",
-                factBody = "Even brief phone checks during lectures leave cognitive residue. Studies show it takes up to 15–20 minutes to fully regain deep focus, directly lowering exam comprehension.",
+                factBody = "Taking just a quick peek at your phone during class breaks your concentration for a long time, making it much harder to understand and remember the lesson for your exams",
                 accentColor = InkAmber
             )
 
@@ -132,7 +132,7 @@ fun WelcomeMythsScreen(
                 icon = Icons.Default.Nightlight,
                 myth = "Myth: \"Scrolling helps me relax and fall asleep.\"",
                 factTitle = "Circadian Rhythm & Sleep Delay",
-                factBody = "Short-form content delivers rapid novelty that triggers dopamine, delaying melatonin onset and reducing crucial deep REM sleep, leaving you groggy the next morning.",
+                factBody = "Watching quick, endlessly scrolling videos before bed tricks your brain into staying alert and delays your natural sleep cycle, leaving you tired the next day.",
                 accentColor = IceBlueLight
             )
 

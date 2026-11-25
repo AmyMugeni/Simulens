@@ -4,10 +4,14 @@ import android.app.Activity
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.Density
 import androidx.core.view.WindowCompat
 
 // ============================================================================
@@ -67,9 +71,19 @@ fun SimulensTheme(
         }
     }
 
-    MaterialTheme(
-        colorScheme = DarkColors,
-        typography = Typography,
-        content = content
-    )
+    val density = LocalDensity.current
+    val clampedDensity = remember(density) {
+        Density(
+            density = density.density,
+            fontScale = density.fontScale.coerceIn(0.85f, 1.15f)
+        )
+    }
+
+    CompositionLocalProvider(LocalDensity provides clampedDensity) {
+        MaterialTheme(
+            colorScheme = DarkColors,
+            typography = Typography,
+            content = content
+        )
+    }
 }

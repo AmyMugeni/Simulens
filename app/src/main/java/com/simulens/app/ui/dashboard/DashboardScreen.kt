@@ -29,6 +29,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.simulens.app.rag.ChatScreen
 import com.simulens.app.ui.components.ActiveSessionBanner
@@ -63,6 +66,19 @@ fun DashboardScreen(
     val riskPrediction by viewModel.riskPrediction.collectAsState()
     val chatLaunchVm: com.simulens.app.rag.ChatLaunchViewModel = viewModel()
 
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.syncUsageData()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
     val analytics = remember(state) { buildAnalytics(state) }
     val colors = MaterialTheme.colorScheme
 
@@ -82,7 +98,7 @@ fun DashboardScreen(
             ) {
                 val navItems = listOf(
                     Triple(0, "Home", Icons.Default.Home),
-                    Triple(1, "Schedule", Icons.Default.CalendarToday),
+                    Triple(1, "Agenda", Icons.Default.CalendarToday),
                     Triple(2, "Trends", Icons.Default.BarChart),
                     Triple(3, "Nudges", Icons.Default.Shield),
                     Triple(4, "Buddy", Icons.AutoMirrored.Filled.Chat)

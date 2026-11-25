@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.simulens.app.domain.rules.intervention.DeviationLevel
 import com.simulens.app.ui.theme.IceBlue
@@ -79,19 +80,37 @@ internal fun CardHeader(
     trailing: (@Composable () -> Unit)? = null
 ) {
     val colors = MaterialTheme.colorScheme
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Box(
             Modifier.size(38.dp).background(tint.copy(alpha = 0.16f), CircleShape),
             contentAlignment = Alignment.Center
         ) { Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp)) }
         Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = colors.onSurface)
-            Text(subtitle, style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
+        Column(Modifier.weight(1f, fill = false)) {
+            Text(
+                title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = colors.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.labelSmall,
+                color = colors.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
         if (trailing != null) {
             Spacer(Modifier.width(8.dp))
-            trailing()
+            Box(modifier = Modifier.wrapContentWidth()) {
+                trailing()
+            }
         }
     }
 }

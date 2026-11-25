@@ -229,7 +229,7 @@ private fun PermissionCard(
     onRequest: () -> Unit
 ) {
     val containerColor = if (isGranted) InkSurfaceHigh.copy(alpha = 0.8f) else InkSurface
-    val borderColor = if (isGranted) RiskLow.copy(alpha = 0.5f) else InkBorder
+    val borderColor = if (isGranted) InkAmber.copy(alpha = 0.5f) else InkBorder
 
     Box(modifier = Modifier.fillMaxWidth()) {
         Card(
@@ -252,7 +252,7 @@ private fun PermissionCard(
                     modifier = Modifier
                         .size(38.dp)
                         .background(
-                            color = if (isGranted) RiskLow.copy(alpha = 0.2f) else InkSurfaceHigh,
+                            color = if (isGranted) InkAmber.copy(alpha = 0.2f) else InkSurfaceHigh,
                             shape = CircleShape
                         )
                 ) {
@@ -260,7 +260,7 @@ private fun PermissionCard(
                         Icon(
                             imageVector = Icons.Filled.Check,
                             contentDescription = "Permission Granted",
-                            tint = RiskLow,
+                            tint = InkAmber,
                             modifier = Modifier.size(20.dp)
                         )
                     } else {
@@ -286,12 +286,12 @@ private fun PermissionCard(
                 if (isGranted) {
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = RiskLow.copy(alpha = 0.15f),
-                        border = BorderStroke(1.dp, RiskLow.copy(alpha = 0.3f))
+                        color = InkAmber.copy(alpha = 0.15f),
+                        border = BorderStroke(1.dp, InkAmber.copy(alpha = 0.3f))
                     ) {
                         Text(
                             text = "Granted",
-                            color = RiskLow,
+                            color = InkAmber,
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
