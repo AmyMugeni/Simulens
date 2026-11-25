@@ -11,7 +11,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from . import config, rag
-from .safety import CRISIS_MESSAGE, is_crisis
+from .safety import CRISIS_MESSAGE, contains_foreign_crisis_ref, is_crisis
 
 # NOTE: message text is never logged, because it can contain sensitive personal information.
 logging.basicConfig(level=logging.INFO)
@@ -132,6 +132,10 @@ async def chat(req: ChatRequest, request: Request):
     except (httpx.HTTPError, RuntimeError):
         log.exception("LLM call failed")
         raise HTTPException(status_code=502, detail="The assistant is unavailable right now.")
+
+    # 4) Post-generation safety net: never let leaked US/foreign crisis numbers reach the user.
+    if contains_foreign_crisis_ref(answer):
+        return ChatResponse(answer=CRISIS_MESSAGE, mode="crisis")
 
     return ChatResponse(
         answer=answer,

@@ -15,24 +15,35 @@ CRISIS_MESSAGE = (
 # or an immediate risk of harm in English, Swahili, and Sheng.
 CRISIS_PATTERNS = [
     # English expressions & variations
-    r"\b(kill my\s*self|end my life|take my own life)\b",
-    r"\b(want to die|wish i was dead|wish i were dead|better off dead)\b",
-    r"\b(feel like dying|feeling like dying|feels like dying)\b",
-    r"\b(dont want to wake up|don't want to wake up|wish i wouldnt wake up|wish i wouldn't wake up)\b",
-    r"\b(suicide|suicidal|self[- ]harm|hurt my\s*self|cutting my\s*wrists|overdose)\b",
-    r"\b(i am going to die|i cannot go on living|cant go on living|can't go on living)\b",
-    r"\b(no reason to live|nothing to live for|giving up on life|ready to end it)\b",
-    r"\b(cant take this anymore|can't take this anymore|cannot take it anymore|tired of everything)\b",
+    r"\b(kill(?:ing)? my\s*self|end(?:ing)? my life|tak(?:e|ing) my own life|kms)\b",
+    r"\b(want to die|wanna die|wish i was dead|wish i were dead|better off dead)\b",
+    r"\b(feel(?:ing|s)? like dying|don'?t want to be here|do not want to be here|want to disappear)\b",
+    r"\b(don'?t want to wake up|do not want to wake up|wish i wouldn'?t wake up)\b",
+    r"\b(suicide|suicidal|self[- ]harm|hurt(?:ing)? my\s*self|harm(?:ing)? my\s*self|cut(?:ting)? my\s*(?:self|wrists)|hang(?:ing)? my\s*self|overdos(?:e|ing)|swallow(?:ing)? pills|jump(?:ing)? off)\b",
+    r"\b(i am going to die|can'?t go on living|cannot go on living)\b",
+    r"\b(no reason to live|nothing to live for|not worth living|no point in living|giving up on life|ready to end it)\b",
+    r"\b(can'?t take this anymore|cannot take it anymore|tired of everything)\b",
     r"\b(nobody would miss me|no one would miss me|better off without me)\b",
-    r"\b(i want to end it all|i am tired of living|tired of this life)\b",
+    r"\b(want to end it all|end(?:ing)? it all|tired of living|tired of this life)\b",
 
     # Kiswahili & Sheng Kenyan conversational expressions
-    r"\b(kujitoa maisha|kujiua|nataka kujiua|kujinyonga|kujikata)\b",
+    r"\b(kujitoa maisha|kujiua|nataka kujiua|kujinyonga|kujikata|kujidhuru|nataka kujidhuru)\b",
     r"\b(nataka kufa|natamani kufa|naskia kufa|naskia kukufa|skia kufa|skia kukufa|kukufa|heri nife|afadhali nife|heri nikufe|afadhali nikufe)\b",
-    r"\b(sina sababu ya kuishi|hata sioni haja ya kuishi|maisha hayana maana)\b",
+    r"\b(sina sababu ya kuishi|hata sioni haja ya kuishi|maisha hayana maana|sioni maana ya kuendelea)\b",
     r"\b(nataka kujiumiza|kujiumiza|kukata roho)\b",
     r"\b(sitaki kuishi tena|nimechoka na maisha|nimechoka kuishi|maisha imenilemea|maisha yanilemee)\b",
     r"\b(sina hope ya kuendelea|nimefika mwisho|nimetoka kwa maisha)\b",
+]
+
+# Post-generation safety guard: catch US/foreign crisis numbers if an LLM leaks them
+FOREIGN_CRISIS_PATTERNS = [
+    r"\b988\b",
+    r"\b741\s*741\b",
+    r"\b1[- ]?800[- ]?273[- ]?(?:8255|talk)\b",
+    r"\bsuicide\s*(?:and|&)\s*crisis\s*lifeline\b",
+    r"\bcrisis\s*text\s*line\b",
+    r"\btrevor\s*project\b",
+    r"\bcall\s*911\b",
 ]
 
 
@@ -50,4 +61,13 @@ def is_crisis(message: str) -> bool:
     return any(
         re.search(pattern, normalized)
         for pattern in CRISIS_PATTERNS
+    )
+
+
+def contains_foreign_crisis_ref(answer: str) -> bool:
+    """Return True if an LLM response leaked US/non-Kenyan crisis hotlines."""
+    lowered = unicodedata.normalize("NFKC", answer.lower())
+    return any(
+        re.search(pattern, lowered)
+        for pattern in FOREIGN_CRISIS_PATTERNS
     )
